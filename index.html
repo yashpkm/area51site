@@ -22,41 +22,95 @@
         .slot-booked {
             background: linear-gradient(135deg, #ef4444, #dc2626);
         }
+        /* MODIFICATION: Darker Green/Teal for visual selected state before adding to cart */
         .slot-selected {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
-        .slot-pending {
-            background: linear-gradient(135deg, #f59e0b, #d97706); /* Amber for pending */
-            opacity: 0.7;
-            cursor: default;
+            background: linear-gradient(135deg, #0f766e, #0d9488);
         }
     </style>
 </head>
 <body class="bg-gray-50 min-h-full">
-   <header class="bg-black text-white p-4 shadow-lg">
-    <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
-        <div class="flex items-center space-x-2 sm:space-x-3">
-            <img src="images/logo.png" alt="Area 51 Sports Logo" class="h-8 sm:h-10">
+    <header class="bg-black text-white p-4 shadow-lg">
+        <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div>
+                    <h1 class="text-lg sm:text-2xl font-bold">Area 51 Sports</h1>
+                    <p class="text-xs sm:text-sm text-gray-300 hidden sm:block">Premium Sports Booking</p>
+                </div>
             </div>
-        <div class="flex items-center space-x-2 sm:space-x-4">
-            <button onclick="showAdminLogin()" class="bg-red-600 hover:bg-red-700 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors text-sm sm:text-base text-white">
-                <span class="hidden sm:inline">🔐 Admin Dashboard</span>
-                <span class="sm:hidden">🔐</span>
-            </button>
-            <button onclick="openWhatsAppSupport()" class="bg-green-500 hover:bg-green-600 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base text-white">
-                <span class="text-lg">💬</span>
-                <span class="hidden sm:inline">WhatsApp Support</span>
-                <span class="sm:hidden">Help</span>
-            </button>
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button onclick="showAdminLoginForm()" class="bg-red-600 hover:bg-red-700 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors text-sm sm:text-base text-white">
+                    <span class="hidden sm:inline">🔐 Admin Dashboard</span>
+                    <span class="sm:hidden">🔐</span>
+                </button>
+                <button onclick="openWhatsAppSupport()" class="bg-green-500 hover:bg-green-600 px-2 sm:px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base text-white">
+                    <span class="text-lg">💬</span>
+                    <span class="hidden sm:inline">WhatsApp Support</span>
+                    <span class="sm:hidden">Help</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="adminLoginSection" class="hidden">
+        <div class="max-w-md mx-auto p-4 sm:p-8 mt-10 bg-white rounded-xl shadow-lg fade-in">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">🔐 Admin Login</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter password to access dashboard" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                </div>
+                <button onclick="attemptAdminLogin()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                    Log In
+                </button>
+                <button onclick="hideAdminLoginForm()" class="w-full text-gray-600 hover:text-gray-800 font-medium">
+                    Back to Booking
+                </button>
+            </div>
         </div>
     </div>
-</header>
 
     <div class="max-w-6xl mx-auto p-4 sm:p-6">
-        
-        <div id="bookingSection" class="fade-in">
-            <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">Book Your Session Instantly</h2>
+        <div id="authSection" class="bg-white rounded-xl shadow-lg p-4 sm:p-8 mb-6 sm:mb-8 fade-in hidden">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Welcome to Area 51 Sports</h2>
+                <p class="text-sm sm:text-base text-gray-600">Book your Pickleball & Snooker sessions instantly</p>
+            </div>
             
+            <div class="max-w-md mx-auto">
+                <div id="phoneInput" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <div class="flex">
+                            <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">+91</span>
+                            <input type="tel" id="phoneNumber" placeholder="Enter 10-digit number" 
+                                   class="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   maxlength="10" pattern="[0-9]{10}">
+                        </div>
+                    </div>
+                    <button type="button" id="sendOtpBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        Send OTP via WhatsApp
+                    </button>
+                </div>
+
+                <div id="otpInput" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Enter OTP</label>
+                        <input type="text" id="otpCode" placeholder="Enter 6-digit OTP" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               maxlength="6">
+                    </div>
+                    <button onclick="verifyOTP()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors">
+                        Verify & Continue
+                    </button>
+                    <button onclick="resendOTP()" class="w-full text-blue-600 hover:text-blue-700 font-medium">
+                        Resend OTP
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="bookingSection" class="">
             <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
                 <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Select Sport</h3>
                 <div class="grid sm:grid-cols-2 gap-4 sm:gap-6">
@@ -65,7 +119,6 @@
                             <div class="text-3xl sm:text-4xl mb-3">🏓</div>
                             <h4 class="text-lg sm:text-xl font-semibold mb-2">Pickleball</h4>
                             <p class="text-sm sm:text-base text-gray-600 mb-3">Indoor & Outdoor Courts</p>
-                            <p class="text-xl sm:text-2xl font-bold text-blue-600">₹500/hour</p>
                         </div>
                     </div>
                     <div class="border-2 border-gray-200 rounded-lg p-4 sm:p-6 hover:border-blue-500 transition-colors cursor-pointer" onclick="selectSport('snooker')">
@@ -73,7 +126,6 @@
                             <div class="text-3xl sm:text-4xl mb-3">🎱</div>
                             <h4 class="text-lg sm:text-xl font-semibold mb-2">Snooker</h4>
                             <p class="text-sm sm:text-base text-gray-600 mb-3">3 Premium Tables</p>
-                            <p class="text-xl sm:text-2xl font-bold text-green-600">₹100/30min</p>
                         </div>
                     </div>
                 </div>
@@ -95,11 +147,11 @@
                     </div>
                 </div>
                 <div class="mb-6">
-                    <h4 class="text-base sm:text-lg font-semibold mb-3">Available Time Slots (Hourly)</h4>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3">Available Time Slots (₹500/hour)</h4>
                     <div id="pickleballSlots" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3"></div>
                 </div>
                 <button onclick="addToCart('pickleball')" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 sm:px-6 py-3 rounded-lg transition-colors text-sm sm:text-base">
-                    Add to Cart - ₹500
+                    Add Selected Slots to Cart
                 </button>
             </div>
 
@@ -120,11 +172,11 @@
                     </div>
                 </div>
                 <div class="mb-6">
-                    <h4 class="text-base sm:text-lg font-semibold mb-3">Available Time Slots (30 min each)</h4>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3">Available Time Slots (30 min each, ₹100/30min)</h4>
                     <div id="snookerSlots" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3"></div>
                 </div>
                 <button onclick="addToCart('snooker')" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-3 rounded-lg transition-colors text-sm sm:text-base">
-                    Add to Cart - ₹100
+                    Add Selected Slots to Cart
                 </button>
             </div>
 
@@ -138,42 +190,10 @@
                         <span>Total:</span>
                         <span id="cartTotal">₹0</span>
                     </div>
-                    <button onclick="checkout()" id="checkoutBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors disabled:bg-gray-400 text-sm sm:text-base" disabled>
+                    <button onclick="confirmBooking()" id="checkoutBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors disabled:bg-gray-400 text-sm sm:text-base" disabled>
                         Confirm Booking
                     </button>
                 </div>
-            </div>
-        </div>
-        
-        <div id="userInfoSection" class="bg-white rounded-xl shadow-lg p-4 sm:p-8 mb-6 sm:mb-8 fade-in hidden">
-            <div class="text-center mb-6">
-                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Final Step: Your Contact Info</h2>
-                <p class="text-sm sm:text-base text-gray-600">We'll use this to confirm your booking and send location details.</p>
-            </div>
-            
-            <div class="max-w-md mx-auto space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Full Name</label>
-                    <input type="text" id="userName" placeholder="e.g., Jane Doe" 
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number (WhatsApp)</label>
-                    <div class="flex">
-                        <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">+91</span>
-                        <input type="tel" id="userPhone" placeholder="Enter 10-digit number" 
-                               class="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               maxlength="10" pattern="[0-9]{10}">
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">We'll open WhatsApp to confirm your booking.</p>
-                </div>
-                
-                <button type="button" onclick="finalBookingConfirmation()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors">
-                    Finalize Booking & Open WhatsApp 💬
-                </button>
-                <button onclick="showBookingSection()" class="w-full text-blue-600 hover:text-blue-700 font-medium">
-                    ← Go Back to Cart
-                </button>
             </div>
         </div>
 
@@ -186,12 +206,12 @@
                         <p class="text-xl sm:text-2xl font-bold text-blue-600" id="todayBookings">0</p>
                     </div>
                     <div class="bg-green-50 p-3 sm:p-4 rounded-lg">
-                        <h4 class="font-semibold text-green-800 text-sm sm:text-base">Total Revenue (Confirmed)</h4>
+                        <h4 class="font-semibold text-green-800 text-sm sm:text-base">Total Revenue</h4>
                         <p class="text-xl sm:text-2xl font-bold text-green-600" id="totalRevenue">₹0</p>
                     </div>
                     <div class="bg-purple-50 p-3 sm:p-4 rounded-lg sm:col-span-2 lg:col-span-1">
-                        <h4 class="font-semibold text-purple-800 text-sm sm:text-base">Total Bookings</h4>
-                        <p class="text-xl sm:text-2xl font-bold text-purple-600" id="totalBookingsCount">0</p>
+                        <h4 class="font-semibold text-purple-800 text-sm sm:text-base">Active Users</h4>
+                        <p class="text-xl sm:text-2xl font-bold text-purple-600" id="activeUsers">0</p>
                     </div>
                 </div>
                 
@@ -203,9 +223,9 @@
                                 <tr class="bg-gray-50">
                                     <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">User</th>
                                     <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Sport</th>
-                                    <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Date & Time</th>
+                                    <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Date</th>
+                                    <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Time</th>
                                     <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Amount</th>
-                                    <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Status</th>
                                     <th class="border border-gray-300 px-2 sm:px-4 py-2 text-left">Actions</th>
                                 </tr>
                             </thead>
@@ -227,17 +247,28 @@
 
     <script>
         // Global state
+        let currentUser = null;
         let cart = [];
-        // Removed `currentUser` as it's no longer needed for login
         let bookings = JSON.parse(localStorage.getItem('area51Bookings') || '[]');
+        let users = JSON.parse(localStorage.getItem('area51Users') || '[]');
+        
+        // MODIFICATION: Changed selectedSlots to hold an array for multi-selection
         let selectedSlots = {
-            pickleball: null,
-            snooker: null
+            pickleball: [],
+            snooker: []
         };
 
-        // API Configuration - WhatsApp is now user-driven, so this is for Admin Support only
-        // The Admin will manually confirm bookings by checking their WhatsApp.
-        const ADMIN_WHATSAPP = '917972409893'; // Your admin WhatsApp number
+        // API Configuration - UPDATE THIS AFTER DEPLOYMENT
+        const API_ENDPOINT = 'https://area51csn.netlify.app/.netlify/functions/send-whatsapp';
+        const ADMIN_WHATSAPP = '919579268502'; // Your admin WhatsApp number
+
+        // WhatsApp API Functions
+        async function sendWhatsAppMessage(phoneNumber, message) {
+            // Since OTP is bypassed, this function is primarily for booking confirmations
+            // and admin notifications, but we'll disable the API call for now.
+            console.log(`[DISABLED] Attempting to send WhatsApp to ${phoneNumber}: ${message.substring(0, 50)}...`);
+            return { success: true, sid: 'SIMULATED_SID' }; // Simulate success
+        }
 
         // Date formatting utility function
         function formatDateToDisplay(dateString) {
@@ -258,20 +289,38 @@
             }
         }
 
-        // Button functions - Global scope for onclick handlers
-        function showAdminLogin() {
-            const password = prompt('🔐 Enter Admin Password:');
-            if (password === 'area51csn@123') {
-                document.getElementById('bookingSection').classList.add('hidden');
-                document.getElementById('userInfoSection').classList.add('hidden');
-                document.getElementById('adminSection').classList.remove('hidden');
-                updateAdminDashboard();
-                alert('✅ Welcome to Admin Dashboard!\n\nYou can now view all bookings, revenue stats, and manage the system.');
-            } else if (password !== null) {
-                alert('❌ Invalid password! Please try again.');
-            }
+        // --- NEW ADMIN LOGIN LOGIC ---
+        function showAdminLoginForm() {
+            document.getElementById('bookingSection').classList.add('hidden');
+            document.getElementById('adminLoginSection').classList.remove('hidden');
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('adminPassword').value = ''; // Clear previous password
         }
 
+        function hideAdminLoginForm() {
+            document.getElementById('adminLoginSection').classList.add('hidden');
+            document.getElementById('bookingSection').classList.remove('hidden');
+        }
+
+        function attemptAdminLogin() {
+            const enteredPassword = document.getElementById('adminPassword').value;
+            
+            // ⚠️ WARNING: This password is in the source code. Not secure for live sites.
+            const CORRECT_PASSWORD = 'area51admin'; 
+
+            if (enteredPassword === CORRECT_PASSWORD) {
+                document.getElementById('adminLoginSection').classList.add('hidden');
+                document.getElementById('bookingSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                updateAdminDashboard();
+                alert('✅ Welcome to Admin Dashboard!\n\nYou can now manage the system.');
+            } else {
+                alert('❌ Invalid password! Access denied.');
+                document.getElementById('adminPassword').value = ''; // Clear input on failure
+            }
+        }
+        
+        // Button functions - Global scope for onclick handlers
         function openWhatsAppSupport() {
             const message = `Hi Area 51 Sports! 👋%0A%0AI need help with:%0A%0A` +
                            `• 🏓 Booking information%0A` +
@@ -283,16 +332,14 @@
             const whatsappURL = `https://wa.me/919579268502?text=${message}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
             
-            alert('📱 Opening WhatsApp...\n\nYou will be redirected to chat with our support team at +91 7972409893');
-        }
-        
-        function showBookingSection() {
-            document.getElementById('bookingSection').classList.remove('hidden');
-            document.getElementById('userInfoSection').classList.add('hidden');
+            alert('📱 Opening WhatsApp...\n\nYou will be redirected to chat with our support team at +91 9579268502');
         }
 
-        // Initialize dates and listeners
+        // Initialize dates and listeners - MODIFICATION: LOGIN BYPASS
         document.addEventListener('DOMContentLoaded', function() {
+            // Automatically set a dummy user for the booking system to function
+            currentUser = { phone: '+919999999999', loginTime: new Date() };
+
             const today = new Date().toISOString().split('T')[0];
             
             // Calculate max date (7 days from today)
@@ -318,6 +365,16 @@
             document.getElementById('courtType').addEventListener('change', generatePickleballSlots);
             document.getElementById('snookerTable').addEventListener('change', generateSnookerSlots);
         });
+        
+        // Authentication functions (Defunct)
+        function sendOTP() {
+            alert('Login is currently disabled. Proceeding directly to booking.');
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('bookingSection').classList.remove('hidden');
+        }
+            
+        function verifyOTP() { /* Defunct */ }
+        function resendOTP() { /* Defunct */ }
 
         // Sport selection
         function selectSport(sport) {
@@ -344,30 +401,21 @@
             for (let hour = 7; hour <= 22; hour++) {
                 const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
                 const slotId = `pickleball-${courtType}-${date}-${timeSlot}`;
+                const isBooked = bookings.some(b => b.id === slotId);
                 
-                // Check if booked or pending
-                const isBooked = bookings.some(b => b.id === slotId && b.status === 'confirmed');
-                const isPending = bookings.some(b => b.id === slotId && b.status === 'pending');
+                // MODIFICATION: Check if slot is in the array of selected slots
+                const isSelected = selectedSlots.pickleball.some(s => s.id === slotId);
                 
                 const button = document.createElement('button');
-                let buttonClass = 'slot-available text-white hover:opacity-90';
-                let buttonDisabled = false;
-                
-                if (isBooked) {
-                    buttonClass = 'slot-booked text-white cursor-not-allowed';
-                    buttonDisabled = true;
-                } else if (isPending) {
-                    buttonClass = 'slot-pending text-white cursor-not-allowed';
-                    buttonDisabled = true;
-                } else if (selectedSlots.pickleball && selectedSlots.pickleball.id === slotId) {
-                    buttonClass = 'slot-selected text-white';
-                }
-
-                button.className = `px-4 py-2 rounded-lg font-medium transition-colors ${buttonClass}`;
+                button.className = `px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isBooked ? 'slot-booked text-white cursor-not-allowed' : 
+                    isSelected ? 'slot-selected text-white' : 
+                    'slot-available text-white hover:opacity-90'
+                }`;
                 button.textContent = timeSlot;
-                button.disabled = buttonDisabled;
+                button.disabled = isBooked;
                 
-                if (!buttonDisabled) {
+                if (!isBooked) {
                     button.onclick = () => selectSlot('pickleball', slotId, timeSlot);
                 }
                 
@@ -386,30 +434,21 @@
                 for (let minute = 0; minute < 60; minute += 30) {
                     const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                     const slotId = `snooker-${table}-${date}-${timeSlot}`;
+                    const isBooked = bookings.some(b => b.id === slotId);
                     
-                    // Check if booked or pending
-                    const isBooked = bookings.some(b => b.id === slotId && b.status === 'confirmed');
-                    const isPending = bookings.some(b => b.id === slotId && b.status === 'pending');
+                    // MODIFICATION: Check if slot is in the array of selected slots
+                    const isSelected = selectedSlots.snooker.some(s => s.id === slotId);
                     
                     const button = document.createElement('button');
-                    let buttonClass = 'slot-available text-white hover:opacity-90';
-                    let buttonDisabled = false;
-                    
-                    if (isBooked) {
-                        buttonClass = 'slot-booked text-white cursor-not-allowed';
-                        buttonDisabled = true;
-                    } else if (isPending) {
-                        buttonClass = 'slot-pending text-white cursor-not-allowed';
-                        buttonDisabled = true;
-                    } else if (selectedSlots.snooker && selectedSlots.snooker.id === slotId) {
-                        buttonClass = 'slot-selected text-white';
-                    }
-                    
-                    button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors ${buttonClass}`;
+                    button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        isBooked ? 'slot-booked text-white cursor-not-allowed' : 
+                        isSelected ? 'slot-selected text-white' : 
+                        'slot-available text-white hover:opacity-90'
+                    }`;
                     button.textContent = timeSlot;
-                    button.disabled = buttonDisabled;
+                    button.disabled = isBooked;
                     
-                    if (!buttonDisabled) {
+                    if (!isBooked) {
                         button.onclick = () => selectSlot('snooker', slotId, timeSlot);
                     }
                     
@@ -418,22 +457,25 @@
             }
         }
 
+        // MODIFICATION: selectSlot now handles toggling multiple selections
         function selectSlot(sport, slotId, timeSlot) {
-            // Check if the slot is in the current cart to deselect
-            const inCart = cart.find(item => item.id === slotId);
-            if (inCart) {
-                alert('You have already added this slot to your cart.');
-                return;
-            }
-
-            if (selectedSlots[sport] && selectedSlots[sport].id === slotId) {
-                // Deselect
-                selectedSlots[sport] = null;
+            const slotIndex = selectedSlots[sport].findIndex(s => s.id === slotId);
+            
+            if (slotIndex > -1) {
+                // Slot is already selected, so unselect it (remove from array)
+                selectedSlots[sport].splice(slotIndex, 1);
             } else {
-                // Select
-                selectedSlots[sport] = { id: slotId, time: timeSlot };
+                // Slot is not selected, so select it (add to array)
+                // Implement the max 2 slots limit per sport for *selection* as well
+                if (selectedSlots[sport].length >= 2) {
+                    alert(`You can only select a maximum of 2 ${sport} slots at a time.`);
+                    return;
+                }
+                
+                selectedSlots[sport].push({ id: slotId, time: timeSlot });
             }
-
+            
+            // Re-render slots to update the color
             if (sport === 'pickleball') {
                 generatePickleballSlots();
             } else {
@@ -442,25 +484,21 @@
         }
 
         // Cart functions
+        // MODIFICATION: addToCart now processes ALL selected slots
         function addToCart(sport) {
-            if (!selectedSlots[sport]) {
-                alert(`Please select a ${sport} time slot first.`);
+            const slotsToCart = selectedSlots[sport];
+
+            if (slotsToCart.length === 0) {
+                alert(`Please select at least one ${sport} time slot first.`);
                 return;
             }
             
-            // Check booking limit - user can select max 4 slots across all sports
-            if (cart.length >= 4) {
-                 alert(`You can only book a maximum of 4 slots total at a time.`);
-                 return;
+            // Check booking limit against current cart items + new selections
+            const currentCartCount = cart.filter(item => item.sport === sport).length;
+            if (currentCartCount + slotsToCart.length > 2) {
+                alert(`You can only book maximum 2 ${sport} slots in total to avoid false bookings. You currently have ${currentCartCount} in the cart and are trying to add ${slotsToCart.length}.`);
+                return;
             }
-
-            const selectedSlot = selectedSlots[sport];
-            const slotId = selectedSlot.id;
-            const selectedTime = selectedSlot.time;
-            
-            // Parse the slot ID for venue info
-            const parts = slotId.split('-');
-            const venue = parts[1];
             
             // Get the actual selected date from the form inputs
             let actualDate;
@@ -470,44 +508,48 @@
                 actualDate = document.getElementById('snookerDate').value;
             }
             
-            // Create cart item with properly formatted date and time
-            const cartItem = {
-                id: slotId,
-                sport: sport,
-                venue: venue,
-                rawDate: actualDate,
-                time: selectedTime,
-                displayDate: formatDateToDisplay(actualDate),
-                displayTime: selectedTime,
-                price: sport === 'pickleball' ? 500 : 100
-            };
+            // Process all selected slots
+            slotsToCart.forEach(selectedSlot => {
+                const slotId = selectedSlot.id;
+                const selectedTime = selectedSlot.time;
+                
+                // Parse the slot ID for venue info
+                const parts = slotId.split('-');
+                const venue = parts[1];
+                
+                // Create cart item with properly formatted date and time
+                const cartItem = {
+                    id: slotId,
+                    sport: sport,
+                    venue: venue,
+                    rawDate: actualDate,
+                    time: selectedTime,
+                    displayDate: formatDateToDisplay(actualDate),
+                    displayTime: selectedTime,
+                    price: sport === 'pickleball' ? 500 : 100
+                };
+                
+                cart.push(cartItem);
+            });
             
-            // Check for potential ID conflict (should be covered by slot selection, but safe check)
-            if (cart.some(item => item.id === slotId)) {
-                alert('This slot is already in your cart.');
-                return;
-            }
-
-            cart.push(cartItem);
-            selectedSlots[sport] = null; // Clear selection after adding to cart
+            // Clear the selection array for the sport
+            selectedSlots[sport] = [];
+            
             updateCartDisplay();
             
+            // Re-render slots to remove the 'selected' color
             if (sport === 'pickleball') {
                 generatePickleballSlots();
             } else {
                 generateSnookerSlots();
             }
-            
-            // Auto-scroll to cart
-            document.getElementById('cartSection').scrollIntoView({ behavior: 'smooth' });
+
+            alert(`✅ ${slotsToCart.length} ${sport} slot(s) added to cart!`);
         }
 
         function removeFromCart(index) {
             cart.splice(index, 1);
             updateCartDisplay();
-            // Re-generate slots to update status of removed item if it was selected or pending
-            generatePickleballSlots();
-            generateSnookerSlots();
         }
 
         function updateCartDisplay() {
@@ -554,50 +596,11 @@
             checkoutBtn.disabled = false;
         }
 
-        // New Booking Flow Functions
-        
-        // Step 1: Click 'Confirm Booking' -> Show User Form
-        function checkout() {
-            if (cart.length === 0) {
-                alert('Your cart is empty.');
-                return;
-            }
+        // Enhanced booking confirmation with simulated WhatsApp
+        async function confirmBooking() {
+            if (cart.length === 0) return;
             
-            // Check for pending/confirmed bookings in cart to prevent double-booking
-            const conflictingBookings = cart.some(cartItem => 
-                bookings.some(b => b.id === cartItem.id && (b.status === 'confirmed' || b.status === 'pending'))
-            );
-            
-            if (conflictingBookings) {
-                 alert('One or more slots in your cart have been booked or marked as pending by another user. Please remove the conflicting slots and try again.');
-                 // Force refresh of slot displays
-                 generatePickleballSlots();
-                 generateSnookerSlots();
-                 return;
-            }
-            
-            document.getElementById('bookingSection').classList.add('hidden');
-            document.getElementById('userInfoSection').classList.remove('hidden');
-        }
-
-        // Step 2: Click 'Finalize Booking' -> Save to Admin & Open WhatsApp
-        function finalBookingConfirmation() {
-            const userName = document.getElementById('userName').value.trim();
-            const userPhone = document.getElementById('userPhone').value.trim();
-            
-            if (userName.length < 3) {
-                alert('Please enter your full name.');
-                return;
-            }
-            if (!/^[0-9]{10}$/.test(userPhone)) {
-                alert('Please enter a valid 10-digit phone number.');
-                return;
-            }
-            
-            const fullPhoneNumber = `+91${userPhone}`;
-            const total = cart.reduce((sum, item) => sum + item.price, 0);
-
-            // 1. Create PENDING bookings and save to localStorage
+            // Create bookings with proper data structure
             const newBookings = cart.map(item => ({
                 id: item.id,
                 sport: item.sport,
@@ -607,70 +610,97 @@
                 displayDate: item.displayDate,
                 displayTime: item.displayTime,
                 price: item.price,
-                user: fullPhoneNumber, // Use the user's input phone number
-                userName: userName,
-                bookingTime: new Date().toLocaleString(),
-                status: 'pending' // KEY CHANGE: Bookings start as 'pending'
+                // MODIFICATION: Using the dummy user phone
+                user: currentUser.phone, 
+                bookingTime: new Date(),
+                status: 'confirmed'
             }));
             
             bookings.push(...newBookings);
             localStorage.setItem('area51Bookings', JSON.stringify(bookings));
             
-            // 2. Construct the WhatsApp message for the Admin
-            const bookingDetails = newBookings.map((booking, index) => 
-                `*${index + 1}.* ${booking.sport.toUpperCase()} - ${booking.displayDate} at ${booking.displayTime} (${booking.venue}) - ₹${booking.price}`
-            ).join('%0A'); // %0A is WhatsApp newline
+            // Show confirmation message on screen
+            showBookingConfirmation(newBookings);
             
-            const adminMessage = `🚨 *NEW PENDING BOOKING REQUEST* 🚨%0A%0A` +
-                                 `👤 *Customer:* ${userName}%0A` +
-                                 `📞 *Phone:* ${fullPhoneNumber}%0A%0A` +
-                                 `📅 *Requested Slots:*%0A` +
-                                 `${bookingDetails}%0A%0A` +
-                                 `💰 *Total:* ₹${total}%0A%0A` +
-                                 `*ACTION REQUIRED:* Please confirm the availability of these slots and reply on WhatsApp to confirm the booking and payment details.`;
+            // Send WhatsApp confirmations (now simulated)
+            await sendBookingConfirmations(newBookings);
             
-            // 3. Open WhatsApp link for the user to send
-            const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${adminMessage}`;
-            window.open(whatsappURL, '_blank', 'noopener,noreferrer');
-            
-            // 4. Show success message to user (and clear state)
-            showConfirmationScreen(total, newBookings);
-
             // Clear cart and refresh
             cart = [];
             updateCartDisplay();
             generatePickleballSlots();
             generateSnookerSlots();
-            
-            // Hide user info section
-            document.getElementById('userInfoSection').classList.add('hidden');
         }
 
-        function showConfirmationScreen(total, bookedItems) {
+        async function sendBookingConfirmations(bookings) {
+            const total = bookings.reduce((sum, b) => sum + b.price, 0);
+            const bookingDetails = bookings.map(booking => 
+                `${booking.sport.toUpperCase()} - ${booking.displayDate} at ${booking.displayTime} (${booking.venue})`
+            ).join('\n');
+            
+            // Customer confirmation message
+            const customerMessage = `🎉 *AREA 51 SPORTS - BOOKING CONFIRMED* 🎉
+
+Hi! Your booking is confirmed:
+
+${bookingDetails}
+
+💰 Total: ₹${total}
+
+📍 Location: Area 51 Sports Complex
+⏰ Please arrive 10 minutes early
+
+🚀 *Let's get ready to feel Area 51!*
+
+You'll receive a reminder 30 minutes before each session.
+
+For any queries, reply to this message.`;
+
+            // Admin notification message
+            const adminMessage = `🔔 *NEW BOOKING ALERT* 🔔
+
+Customer: ${currentUser.phone}
+Bookings: ${bookings.length}
+
+${bookingDetails}
+
+💰 Total Revenue: ₹${total}
+📅 Booking Time: ${new Date().toLocaleString()}
+
+Area 51 Sports Admin Panel`;
+
+            // Send to customer
+            await sendWhatsAppMessage(currentUser.phone, customerMessage);
+            
+            // Send to admin
+            await sendWhatsAppMessage(ADMIN_WHATSAPP, adminMessage);
+        }
+
+        function showBookingConfirmation(bookings) {
             // Create confirmation overlay
             const overlay = document.createElement('div');
             overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             overlay.innerHTML = `
                 <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center fade-in">
-                    <div class="text-6xl mb-4">💬</div>
-                    <h2 class="text-2xl font-bold text-blue-600 mb-4">Almost Done!</h2>
-                    <p class="text-gray-600 mb-4">Please **SEND THE MESSAGE** in the WhatsApp chat that just opened to finalize your booking. The admin will reply shortly to confirm.</p>
-                    <div class="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4 rounded-lg mb-6">
-                        <p class="font-bold text-lg">Your slots are temporarily reserved! ⏳</p>
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h2 class="text-2xl font-bold text-green-600 mb-4">Booking Confirmed!</h2>
+                    <p class="text-gray-600 mb-4">Confirmation simulated. Please check your browser's console for 'WhatsApp' logs.</p>
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg mb-6">
+                        <p class="font-bold text-lg">Let's get ready to feel Area 51! 🚀</p>
                     </div>
                     <div class="text-left bg-gray-50 p-4 rounded-lg mb-4">
-                        <h3 class="font-semibold mb-2">Requested Slots:</h3>
-                        ${bookedItems.map(booking => `
+                        <h3 class="font-semibold mb-2">Your Bookings:</h3>
+                        ${bookings.map(booking => `
                             <div class="text-sm mb-1">
-                                🟡 PENDING: ${booking.sport.toUpperCase()} - ${booking.displayDate} at ${booking.displayTime}
+                                📅 ${booking.sport.toUpperCase()} - ${booking.displayDate} at ${booking.displayTime}
                             </div>
                         `).join('')}
                         <div class="font-bold mt-2 pt-2 border-t">
-                            Total Request: ₹${total}
+                            Total: ₹${bookings.reduce((sum, b) => sum + b.price, 0)}
                         </div>
                     </div>
                     <button onclick="closeConfirmation()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
-                        Close 🎯
+                        Awesome! 🎯
                     </button>
                 </div>
             `;
@@ -683,91 +713,101 @@
             if (overlay) {
                 overlay.remove();
             }
-            // Ensure we are back on the main booking page
-            showBookingSection(); 
         }
 
-        // Admin functions (Updated to handle 'pending' status)
+        // Admin functions
         function updateAdminDashboard() {
             const today = new Date().toISOString().split('T')[0];
-            const todayBookings = bookings.filter(b => b.date === today && b.status === 'confirmed').length;
-            const totalRevenue = bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.price, 0);
-            const totalBookingsCount = bookings.length; // Total confirmed and pending
+            const todayBookings = bookings.filter(b => b.date === today).length;
+            const totalRevenue = bookings.reduce((sum, b) => sum + b.price, 0);
+            const activeUsers = users.length;
             
             document.getElementById('todayBookings').textContent = todayBookings;
             document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
-            document.getElementById('totalBookingsCount').textContent = totalBookingsCount;
+            document.getElementById('activeUsers').textContent = activeUsers;
             
             const tableBody = document.getElementById('bookingsTable');
             if (bookings.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="6" class="border border-gray-300 px-4 py-2 text-center text-gray-500">No bookings yet</td></tr>';
             } else {
-                tableBody.innerHTML = bookings.map((booking, index) => {
-                    const statusClass = booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                    const actions = booking.status === 'pending' ? 
-                        `<button onclick="confirmAdminBooking(${index})" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm mr-2">Confirm</button>` : '';
-
-                    return `
-                    <tr class="${booking.status === 'pending' ? 'bg-yellow-50' : ''}">
-                        <td class="border border-gray-300 px-4 py-2">${booking.userName} (${booking.user})</td>
-                        <td class="border border-gray-300 px-4 py-2 capitalize">${booking.sport} (${booking.venue})</td>
-                        <td class="border border-gray-300 px-4 py-2">${booking.displayDate || formatDateToDisplay(booking.date)} @ ${booking.time}</td>
+                tableBody.innerHTML = bookings.map((booking, index) => `
+                    <tr>
+                        <td class="border border-gray-300 px-4 py-2">${booking.user}</td>
+                        <td class="border border-gray-300 px-4 py-2 capitalize">${booking.sport}</td>
+                        <td class="border border-gray-300 px-4 py-2">${booking.displayDate || formatDateToDisplay(booking.date)}</td>
+                        <td class="border border-gray-300 px-4 py-2">${booking.time}</td>
                         <td class="border border-gray-300 px-4 py-2">₹${booking.price}</td>
                         <td class="border border-gray-300 px-4 py-2">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${booking.status.toUpperCase()}</span>
-                        </td>
-                        <td class="border border-gray-300 px-4 py-2 whitespace-nowrap">
-                            ${actions}
-                            <button onclick="cancelAdminBooking(${index})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                            <button onclick="cancelBooking(${index})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
                                 Cancel
                             </button>
                         </td>
                     </tr>
-                `}).join('');
+                `).join('');
             }
         }
 
-        // Admin action: Confirm Booking
-        function confirmAdminBooking(index) {
-            if (confirm('Are you sure you want to CONFIRM this booking? This will change the status and count towards revenue.')) {
-                bookings[index].status = 'confirmed';
-                localStorage.setItem('area51Bookings', JSON.stringify(bookings));
-                updateAdminDashboard();
-                generatePickleballSlots();
-                generateSnookerSlots();
-                alert(`✅ Booking for ${bookings[index].userName} confirmed!`);
-                
-                // You would typically send a WhatsApp confirmation here if using an API
-                // For this manual flow, the admin must reply manually on WhatsApp.
-            }
-        }
-        
-        // Admin action: Cancel Booking
-        function cancelAdminBooking(index) {
-            if (confirm('Are you sure you want to CANCEL this booking?')) {
+        // FIXED: Cancel booking function with immediate UI update
+        async function cancelBooking(index) {
+            if (confirm('Are you sure you want to cancel this booking?')) {
                 const booking = bookings[index];
                 
-                // Remove booking from array and update storage
-                bookings.splice(index, 1);
-                localStorage.setItem('area51Bookings', JSON.stringify(bookings));
+                // Show loading state on the cancel button
+                const cancelButtons = document.querySelectorAll('button[onclick*="cancelBooking"]');
+                const cancelButton = cancelButtons[index];
+                const originalText = cancelButton.textContent;
+                cancelButton.textContent = 'Cancelling...';
+                cancelButton.disabled = true;
                 
-                // Immediately update the admin dashboard display
-                updateAdminDashboard();
-                
-                // Refresh the time slots to show availability
-                generatePickleballSlots();
-                generateSnookerSlots();
-                
-                alert(`✅ Booking for ${booking.userName} cancelled.\n\nNOTE: You must manually inform the customer via WhatsApp/Call.`);
+                try {
+                    // Remove booking from array and update storage
+                    bookings.splice(index, 1);
+                    localStorage.setItem('area51Bookings', JSON.stringify(bookings));
+                    
+                    // Immediately update the admin dashboard display
+                    updateAdminDashboard();
+                    
+                    // Refresh the time slots to show availability
+                    generatePickleballSlots();
+                    generateSnookerSlots();
+                    
+                    // Send cancellation WhatsApp to customer (in background)
+                    const cancellationMessage = `❌ *BOOKING CANCELLED* ❌
+
+Your ${booking.sport} booking for ${booking.displayDate || formatDateToDisplay(booking.date)} at ${booking.time} has been cancelled.
+
+💰 Refund of ₹${booking.price} will be processed within 24 hours.
+
+For any queries, contact us.
+
+Area 51 Sports Team`;
+
+                    // Send WhatsApp notification (now simulated)
+                    sendWhatsAppMessage(booking.user, cancellationMessage)
+                        .then(() => {
+                            console.log(`Cancellation notification simulated for ${booking.user}`);
+                        })
+                        .catch((error) => {
+                            console.error('Simulated failure to send cancellation WhatsApp:', error);
+                        });
+                    
+                    // Show success message
+                    alert(`✅ Booking cancelled successfully!\n\nWhatsApp notification will be simulated for ${booking.user}`);
+                    
+                } catch (error) {
+                    console.error('Error cancelling booking:', error);
+                    alert('❌ Error cancelling booking. Please try again.');
+                    
+                    // Restore button state
+                    cancelButton.textContent = originalText;
+                    cancelButton.disabled = false;
+                }
             }
         }
 
         function exitAdmin() {
             document.getElementById('adminSection').classList.add('hidden');
             document.getElementById('bookingSection').classList.remove('hidden');
-            // Ensure slots are refreshed when leaving admin
-            generatePickleballSlots();
-            generateSnookerSlots();
         }
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c8be00e6ba741b',t:'MTc2MDEyNjgyOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
