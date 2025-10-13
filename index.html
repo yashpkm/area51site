@@ -237,7 +237,7 @@
 
         // API Configuration - WhatsApp is now user-driven, so this is for Admin Support only
         // The Admin will manually confirm bookings by checking their WhatsApp.
-        const ADMIN_WHATSAPP = '919579268502'; // Your admin WhatsApp number
+        const ADMIN_WHATSAPP = '917972409893'; // Your admin WhatsApp number
 
         // Date formatting utility function
         function formatDateToDisplay(dateString) {
@@ -260,8 +260,8 @@
 
         // Button functions - Global scope for onclick handlers
         function showAdminLogin() {
-            const password = prompt('🔐 Enter Admin Password:\n\n(Hint: area51admin)');
-            if (password === 'area51admin') {
+            const password = prompt('🔐 Enter Admin Password:');
+            if (password === 'area51csn@123') {
                 document.getElementById('bookingSection').classList.add('hidden');
                 document.getElementById('userInfoSection').classList.add('hidden');
                 document.getElementById('adminSection').classList.remove('hidden');
@@ -283,7 +283,7 @@
             const whatsappURL = `https://wa.me/919579268502?text=${message}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
             
-            alert('📱 Opening WhatsApp...\n\nYou will be redirected to chat with our support team at +91 9579268502');
+            alert('📱 Opening WhatsApp...\n\nYou will be redirected to chat with our support team at +91 7972409893');
         }
         
         function showBookingSection() {
@@ -627,7 +627,7 @@
                                  `📅 *Requested Slots:*%0A` +
                                  `${bookingDetails}%0A%0A` +
                                  `💰 *Total:* ₹${total}%0A%0A` +
-                                 `*ACTION REQUIRED:* Please confirm the availability of these slots and reply to the customer on WhatsApp to confirm the booking and payment details.`;
+                                 `*ACTION REQUIRED:* Please confirm the availability of these slots and reply on WhatsApp to confirm the booking and payment details.`;
             
             // 3. Open WhatsApp link for the user to send
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${adminMessage}`;
