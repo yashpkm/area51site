@@ -242,13 +242,11 @@
 
     <script>
         // Global state
-        // MODIFICATION: currentUser initialized as null/placeholder
         let currentUser = { phone: null, name: null };
         let cart = [];
         let bookings = JSON.parse(localStorage.getItem('area51Bookings') || '[]');
         let users = JSON.parse(localStorage.getItem('area51Users') || '[]');
         
-        // MODIFICATION: Changed selectedSlots to hold an array for multi-selection
         let selectedSlots = {
             pickleball: [],
             snooker: []
@@ -279,10 +277,10 @@
         // --- ADMIN LOGIN LOGIC ---
         function showAdminLoginForm() {
             document.getElementById('bookingSection').classList.add('hidden');
-            document.getElementById('customerDetailsForm').classList.add('hidden'); // Hide customer form
+            document.getElementById('customerDetailsForm').classList.add('hidden');
             document.getElementById('adminLoginSection').classList.remove('hidden');
             document.getElementById('adminSection').classList.add('hidden');
-            document.getElementById('adminPassword').value = ''; // Clear previous password
+            document.getElementById('adminPassword').value = '';
         }
 
         function hideAdminLoginForm() {
@@ -304,7 +302,7 @@
                 alert('✅ Welcome to Admin Dashboard!\n\nYou can now manage the system.');
             } else {
                 alert('❌ Invalid password! Access denied.');
-                document.getElementById('adminPassword').value = ''; // Clear input on failure
+                document.getElementById('adminPassword').value = '';
             }
         }
         
@@ -323,16 +321,14 @@
             alert('📱 Opening WhatsApp...\n\nYou will be redirected to chat with our support team at +91 9579268502');
         }
 
-        // Initialize dates and listeners - MODIFICATION: LOGIN BYPASS
+        // Initialize dates and listeners
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
             
-            // Calculate max date (7 days from today)
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + 7);
             const maxDateString = maxDate.toISOString().split('T')[0];
             
-            // Set date constraints
             document.getElementById('pickleballDate').value = today;
             document.getElementById('snookerDate').value = today;
             document.getElementById('pickleballDate').min = today;
@@ -340,22 +336,15 @@
             document.getElementById('pickleballDate').max = maxDateString;
             document.getElementById('snookerDate').max = maxDateString;
             
-            // Generate initial slots
             generatePickleballSlots();
             generateSnookerSlots();
             
-            // Add event listeners for date changes
             document.getElementById('pickleballDate').addEventListener('change', generatePickleballSlots);
             document.getElementById('snookerDate').addEventListener('change', generateSnookerSlots);
             document.getElementById('courtType').addEventListener('change', generatePickleballSlots);
             document.getElementById('snookerTable').addEventListener('change', generateSnookerSlots);
         });
         
-        // Authentication functions (Defunct)
-        function sendOTP() { /* Defunct */ }
-        function verifyOTP() { /* Defunct */ }
-        function resendOTP() { /* Defunct */ }
-
         // Sport selection
         function selectSport(sport) {
             document.getElementById('pickleballBooking').classList.add('hidden');
@@ -370,7 +359,7 @@
             }
         }
 
-        // Slot generation functions (No change)
+        // Slot generation functions
         function generatePickleballSlots() {
             const container = document.getElementById('pickleballSlots');
             const date = document.getElementById('pickleballDate').value;
@@ -456,7 +445,7 @@
             }
         }
 
-        // Cart functions (No change)
+        // Cart functions
         function addToCart(sport) {
             const slotsToCart = selectedSlots[sport];
 
@@ -561,28 +550,26 @@
             checkoutBtn.disabled = false;
         }
 
-        // --- NEW CUSTOMER/PENDING BOOKING FLOW ---
+        // --- CUSTOMER/PENDING BOOKING FLOW ---
 
-        // MODIFIED: Shows the customer details form
+        // Shows the customer details form
         function confirmBooking() {
             if (cart.length === 0) return;
             
-            // Show the form
             document.getElementById('bookingSection').classList.add('hidden');
             document.getElementById('customerDetailsForm').classList.remove('hidden');
             
-            // Pre-fill if possible (e.g., if user has booked before)
             document.getElementById('customerName').value = currentUser.name || '';
             document.getElementById('customerPhone').value = currentUser.phone ? currentUser.phone.replace('+91', '') : '';
         }
         
-        // NEW function to hide the form
+        // function to hide the form
         function hideCustomerDetailsForm() {
             document.getElementById('customerDetailsForm').classList.add('hidden');
             document.getElementById('bookingSection').classList.remove('hidden');
         }
 
-        // NEW function: Processes the customer form and saves as PENDING
+        // Processes the customer form and saves as PENDING
         async function processCustomerDetails() {
             const name = document.getElementById('customerName').value.trim();
             const phone = document.getElementById('customerPhone').value.trim();
@@ -636,21 +623,29 @@
         function openWhatsAppConfirmation(bookings) {
             const total = bookings.reduce((sum, b) => sum + b.price, 0);
             
+            // Create a unique reference ID
+            const bookingRef = `A51-${new Date().getTime().toString().slice(-6)}`; 
+            
             // Use line breaks (%0A) for WhatsApp formatting
             const bookingDetails = bookings.map(booking => 
-                `• ${booking.sport.toUpperCase()} (${booking.venue}) on ${booking.displayDate} at ${booking.displayTime}`
-            ).join('%0A'); 
+                `👉 *${booking.sport.toUpperCase()}* (${booking.venue})%0A` +
+                `   📅 Date: ${booking.displayDate}%0A` +
+                `   ⏰ Time: ${booking.displayTime}%0A` +
+                `   💵 Price: ₹${booking.price}`
+            ).join('%0A---%0A'); // Separator for multiple bookings
 
-            const bookingId = new Date().getTime(); // Unique ID
-
-            const whatsappMessage = `*NEW PENDING BOOKING - AREA 51 SPORTS*%0A%0A` +
-                                    `👤 Customer: ${currentUser.name}%0A` +
-                                    `📞 Phone: ${currentUser.phone}%0A` +
-                                    `🆔 Booking Ref: #${bookingId}%0A%0A` +
-                                    `*Bookings Details:*%0A` +
-                                    `${bookingDetails}%0A%0A` +
-                                    `💰 Total Amount: ₹${total}%0A%0A` +
-                                    `*ACTION REQUIRED:* Please approve this booking (status: PENDING) and share payment details with the customer.`;
+            const whatsappMessage = 
+                `*🚨 BOOKING REQUEST - PAYMENT REQUIRED 🚨*%0A%0A` +
+                `Hi Admin, I'd like to confirm my booking at Area 51 Sports. Please share the payment link/details.%0A%0A` +
+                `*Reference:* #${bookingRef}%0A` +
+                `*Customer:* ${currentUser.name}%0A` +
+                `*My WhatsApp:* ${currentUser.phone}%0A%0A` +
+                `===================================%0A` +
+                `*SLOT DETAILS:*%0A%0A` +
+                `${bookingDetails}%0A` +
+                `===================================%0A%0A` +
+                `*💰 TOTAL AMOUNT:* ₹${total}%0A%0A` +
+                `Looking forward to your confirmation! 🙏`;
 
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
             
@@ -661,7 +656,7 @@
             showPendingConfirmation(bookings);
         }
 
-        // NEW function: Shows the overlay to tell the user to send the WhatsApp
+        // Shows the overlay to tell the user to send the WhatsApp
         function showPendingConfirmation(bookings) {
             const overlay = document.createElement('div');
             overlay.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
@@ -701,19 +696,19 @@
                 overlay.remove();
             }
         }
-        // --- END NEW FLOW ---
+        // --- END CUSTOMER FLOW ---
 
 
         // Admin functions
         function updateAdminDashboard() {
             const today = new Date().toISOString().split('T')[0];
-            const todayBookings = bookings.filter(b => b.date === today).length;
+            const todayBookings = bookings.filter(b => b.date === today && b.status !== 'cancelled').length;
             const totalRevenue = bookings.reduce((sum, b) => sum + (b.status === 'confirmed' ? b.price : 0), 0);
             const pendingBookings = bookings.filter(b => b.status === 'pending').length;
             
             document.getElementById('todayBookings').textContent = todayBookings;
             document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
-            document.getElementById('pendingBookings').textContent = pendingBookings; // Updated element ID
+            document.getElementById('pendingBookings').textContent = pendingBookings;
             
             const tableBody = document.getElementById('bookingsTable');
             if (bookings.length === 0) {
@@ -748,12 +743,12 @@
             }
         }
         
-        // NEW Admin function to change status (replaces old cancelBooking)
+        // Admin function to change status
         async function updateBookingStatus(index, newStatus) {
             const booking = bookings[index];
             const originalStatus = booking.status;
             
-            if (newStatus === originalStatus) return; // No change
+            if (newStatus === originalStatus) return;
             
             if (newStatus === 'cancelled' && !confirm(`Are you sure you want to CANCEL this booking for ${booking.name || booking.user}?`)) {
                 return;
@@ -762,17 +757,14 @@
                 return;
             }
 
-            // Update status in data
             booking.status = newStatus;
             bookings[index] = booking;
             localStorage.setItem('area51Bookings', JSON.stringify(bookings));
             
-            // Immediate UI update
             updateAdminDashboard();
             generatePickleballSlots();
             generateSnookerSlots();
             
-            // Simulated WhatsApp notification for admin
             const actionText = newStatus === 'confirmed' ? 'APPROVED and CONFIRMED' : 'CANCELLED';
             const adminMessage = `✅ Booking for ${booking.name || booking.user} has been manually ${actionText}.`;
             console.log(`[SIMULATED ADMIN NOTIFICATION]: ${adminMessage}`);
