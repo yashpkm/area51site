@@ -187,7 +187,7 @@
     <div id="userDetailsModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
         <div class="bg-white rounded-xl p-6 sm:p-8 max-w-lg mx-4 text-center fade-in shadow-2xl">
             <h2 class="text-2xl font-bold text-purple-600 mb-4">Complete Your Booking</h2>
-            <p class="text-gray-600 mb-6">Please provide your details so the Admin can confirm your slot and contact you.</p>
+            <p class="text-gray-600 mb-6">Please provide your details so that we can confirm your slot and contact you.</p>
             
             <div class="space-y-4 text-left">
                 <div>
@@ -481,7 +481,7 @@
                 `📞 *WhatsApp:* +91${whatsapp}%0A%0A` +
                 `🎾 *Booking Details (Total ₹${total}):*%0A` +
                 `- ${bookingDetailsText}%0A%0A` +
-                `_Kindly confirm this booking in the Admin Dashboard (accessed by clicking the title 5x or using the direct link) at your earliest convenience._`;
+                `_Kindly confirm this booking in the Admin Dashboard at your earliest convenience._`;
 
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
