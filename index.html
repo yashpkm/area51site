@@ -41,27 +41,24 @@
 <body class="bg-gray-50 min-h-full">
     <header class="bg-black text-white p-4 shadow-xl sticky top-0 z-10">
         <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
-            <div class="flex items-center space-x-3">
+            
+            <!-- HIDDEN ADMIN ACCESS TRIGGER: Click this area 5 times quickly to open the admin password prompt -->
+            <div class="flex items-center space-x-3 cursor-pointer" id="adminTrigger">
                 <div class="text-3xl">🎾</div>
                 <div>
                     <h1 class="text-lg sm:text-2xl font-extrabold">Area 51 Pickleball</h1>
                     <p class="text-xs sm:text-sm text-gray-400 hidden sm:block">Premium Court Booking System</p>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 sm:space-x-4">
-                <button onclick="showAdminLogin()" class="bg-red-600 hover:bg-red-700 px-3 sm:px-4 py-2 rounded-lg font-semibold transition-colors text-sm sm:text-base text-white shadow-md">
-                    <span class="hidden sm:inline">🔐 Admin Dashboard</span>
-                    <span class="sm:hidden">🔐</span>
-                </button>
-            </div>
+
+            <!-- Removed Admin Button to hide it from general users -->
+            <div class="h-6"></div>
         </div>
     </header>
 
     <div class="max-w-6xl mx-auto p-4 sm:p-6">
-        <!-- Login Section is removed/bypassed as in original file, keeping only the booking section -->
-
+        
         <div id="bookingSection" class="">
-            <!-- Sport Selection is removed, going straight to Pickleball -->
             
             <div id="pickleballBooking" class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 mb-8 fade-in">
                 <h3 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Book Your Pickleball Court</h3>
@@ -294,7 +291,7 @@
                 } else if (isBookedPending && currentBooking.user === currentUser.id) {
                     // Temporary action for pending slots by current user - for demonstration, we keep it simple
                     // In a real app, this would show "view details" or "remove from cart".
-                    button.onclick = () => alert('This slot is currently pending for you. Complete the booking in your cart!');
+                    button.onclick = () => console.log('This slot is pending for you. Complete the booking in your cart!');
                 }
 
                 container.appendChild(button);
@@ -356,7 +353,8 @@
             selectedSlots = [];
 
             updateCartDisplay();
-            alert(`✅ ${pendingBookingDraft.length} slot(s) moved to 'Your Cart'. Click 'Confirm Booking & Enter Details' to proceed.`);
+            // Using a simple message box instead of alert() for better UX
+            showMessage('✅ Slot(s) Added to Cart', `${pendingBookingDraft.length} slot(s) moved to 'Your Cart'. Click 'Confirm Booking & Enter Details' to proceed.`, 'green');
         }
 
         function removeFromCart(index) {
@@ -425,7 +423,7 @@
             const whatsapp = document.getElementById('customerWhatsapp').value.trim();
             
             if (!name || whatsapp.length !== 10 || isNaN(whatsapp)) {
-                alert('Please enter your full name and a valid 10-digit WhatsApp number.');
+                showMessage('Missing Details', 'Please enter your full name and a valid 10-digit WhatsApp number.', 'red');
                 return;
             }
             
@@ -444,7 +442,7 @@
 
             // Check for potential clashes (highly unlikely here, but good practice)
             newPendingBookings.forEach(newBooking => {
-                // Remove existing slot if it was somehow in the global bookings with a bad status (e.g., pending-draft)
+                // Remove existing slot if it was somehow in the global bookings with a bad status
                 bookings = bookings.filter(b => b.id !== newBooking.id); 
                 bookings.push(newBooking);
             });
@@ -458,7 +456,7 @@
                 `📞 *WhatsApp:* +91${whatsapp}%0A%0A` +
                 `🎾 *Booking Details (Total ₹${total}):*%0A` +
                 `- ${bookingDetailsText}%0A%0A` +
-                `_Kindly confirm this booking._`;
+                `_Kindly confirm this booking in the Admin Dashboard (accessed by clicking the title 5x) at your earliest convenience._`;
 
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
@@ -469,20 +467,61 @@
             updateCartDisplay();
             generatePickleballSlots(); // Refresh slots to show yellow status
 
-            alert(`✅ Booking Request Sent! The slots are temporarily held (Yellow). The Admin must confirm them to secure your booking. WhatsApp chat opened.`);
+            showMessage('Booking Request Sent!', 'The slots are temporarily held (Yellow). The Admin must confirm them to secure your booking. WhatsApp chat opened.', 'purple');
         }
 
         // --- ADMIN FUNCTIONS ---
+        
+        // Custom message box utility (since alert() is forbidden)
+        function showMessage(title, message, type = 'blue') {
+            const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-500' : 'bg-blue-500';
+            const html = `
+                <div id="custom-message-box" class="fixed top-0 left-1/2 -translate-x-1/2 mt-4 z-[100] p-4 rounded-lg shadow-xl text-white ${bgColor} fade-in" style="min-width: 300px;">
+                    <h4 class="font-bold text-lg">${title}</h4>
+                    <p class="text-sm">${message}</p>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            setTimeout(() => {
+                const box = document.getElementById('custom-message-box');
+                if (box) box.remove();
+            }, 5000);
+        }
 
+        // --- HIDDEN ADMIN ACCESS LOGIC (5-click trigger) ---
+        let adminClickCount = 0;
+        let adminTimeout = null;
+        const ADMIN_ACCESS_CLICKS = 5;
+        const CLICK_TIMEOUT_MS = 1500; // 1.5 seconds
+
+        function checkAdminAccess() {
+            adminClickCount++;
+
+            if (adminTimeout) {
+                clearTimeout(adminTimeout);
+            }
+
+            // Reset counter after timeout
+            adminTimeout = setTimeout(() => {
+                adminClickCount = 0;
+            }, CLICK_TIMEOUT_MS);
+
+            if (adminClickCount >= ADMIN_ACCESS_CLICKS) {
+                adminClickCount = 0; // Reset immediately to prevent multiple popups
+                clearTimeout(adminTimeout);
+                showAdminLogin();
+            }
+        }
+        
         function showAdminLogin() {
             const password = prompt('🔐 Enter Admin Password:\n\n(Hint: area51admin)');
             if (password === 'area51admin') {
                 document.getElementById('bookingSection').classList.add('hidden');
                 document.getElementById('adminSection').classList.remove('hidden');
                 updateAdminDashboard();
-                alert('✅ Welcome Admin!');
+                showMessage('Welcome Admin!', 'You have successfully accessed the dashboard.', 'green');
             } else if (password !== null) {
-                alert('❌ Invalid password! Please try again.');
+                showMessage('Access Denied', 'Invalid password! Access attempt logged.', 'red');
             }
         }
 
@@ -536,18 +575,20 @@
             const bookingIndex = bookings.findIndex(b => b.id === slotId);
             
             if (bookingIndex === -1) {
-                alert('Booking not found!');
+                showMessage('Error', 'Booking not found!', 'red');
                 return;
             }
 
             const booking = bookings[bookingIndex];
 
             if (booking.status === 'confirmed') {
-                alert('This booking is already confirmed!');
+                showMessage('Already Confirmed', 'This booking is already confirmed!', 'blue');
                 return;
             }
-
-            if (confirm(`Confirm booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
+            
+            // Note: Using window.confirm() here as it is only in the ADMIN-protected function
+            if (window.confirm(`Confirm booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
+                
                 // 1. Update status to 'confirmed' (Red)
                 bookings[bookingIndex].status = 'confirmed';
                 saveBookings();
@@ -570,7 +611,7 @@
                 // 3. Refresh UI
                 updateAdminDashboard();
                 generatePickleballSlots();
-                alert(`✅ Booking Confirmed! WhatsApp message opened to notify customer ${booking.customerName}.`);
+                showMessage('Confirmed!', `Booking Confirmed for ${booking.customerName}. WhatsApp message opened to notify customer.`, 'green');
             }
         }
 
@@ -578,13 +619,14 @@
             const bookingIndex = bookings.findIndex(b => b.id === slotId);
             
             if (bookingIndex === -1) {
-                alert('Booking not found!');
+                showMessage('Error', 'Booking not found!', 'red');
                 return;
             }
 
             const booking = bookings[bookingIndex];
 
-            if (confirm(`Are you sure you want to CANCEL the ${booking.status.toUpperCase()} booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
+            // Note: Using window.confirm() here as it is only in the ADMIN-protected function
+            if (window.confirm(`Are you sure you want to CANCEL the ${booking.status.toUpperCase()} booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
                 
                 // Remove booking from array and update storage
                 bookings.splice(bookingIndex, 1);
@@ -593,7 +635,7 @@
                 // Optional: Notify customer about cancellation (Admin to Customer WhatsApp)
                 const cancellationMessage = `❌ *BOOKING CANCELLED* ❌%0A%0A` +
                                             `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${booking.time} has been CANCELLED by the Admin.%0A%0A` +
-                                            `_If payment was made, a refund of ₹${booking.price} will be processed. Please contact us for details._%0A%0A` +
+                                            `_The slot is now available to book. Please contact us if you need assistance._%0A%0A` +
                                             `Area 51 Sports Team`;
                 
                 const customerWhatsappNumber = `91${booking.customerWhatsapp}`; 
@@ -603,15 +645,24 @@
                 // Refresh UI
                 updateAdminDashboard();
                 generatePickleballSlots();
-                alert(`✅ Booking cancelled successfully! The slot is now available (Green). WhatsApp message opened to notify customer ${booking.customerName}.`);
+                showMessage('Cancelled!', `Booking cancelled successfully! The slot is now available (Green). WhatsApp message opened to notify customer ${booking.customerName}.`, 'red');
             }
         }
 
         function exitAdmin() {
             document.getElementById('adminSection').classList.add('hidden');
             document.getElementById('bookingSection').classList.remove('hidden');
+            showMessage('Exited Admin', 'You are back in the customer booking view.', 'blue');
         }
 
+        // NEW FUNCTION: Check URL for admin query parameter
+        function checkUrlForAdminAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === 'true') {
+                showAdminLogin();
+            }
+        }
+        
         // --- INITIALIZATION ---
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -627,6 +678,12 @@
             document.getElementById('pickleballDate').min = today;
             document.getElementById('pickleballDate').max = maxDateString;
             
+            // Attach hidden admin access listener
+            document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
+
+            // Check if the admin URL parameter is present to trigger login
+            checkUrlForAdminAccess();
+
             // Generate initial slots
             generatePickleballSlots();
             updateCartDisplay(); // Ensure cart state is fresh
