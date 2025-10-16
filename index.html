@@ -22,19 +22,24 @@
         /* Available: Green/Teal */
         .slot-available {
             background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            cursor: pointer;
         }
-        /* Confirmed/Booked: Red (as requested) */
+        /* Confirmed/Booked: Red (This is the only database-level booked state now) */
         .slot-booked {
             background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
-        /* Pending/In Cart: Yellow (New state) */
-        .slot-pending {
-            background: linear-gradient(135deg, #facc15, #eab308); /* Yellow gradient */
-            color: #1f2937; /* Dark text for contrast */
+        /* Selected (Client-side Cart/Draft): Dark Teal */
+        .slot-selected {
+            background: linear-gradient(135deg, #0f766e, #0d9488);
+            color: white;
+            box-shadow: 0 0 0 3px #fbbf24 inset; /* Yellow border to signify selection */
         }
-        /* Selected (visual only, before adding to cart) */
-        .slot-available-selected {
-            background: linear-gradient(135deg, #0d9488, #0f766e);
+        .custom-modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.75);
         }
     </style>
 </head>
@@ -42,29 +47,26 @@
     <header class="bg-black text-white p-4 shadow-xl sticky top-0 z-10">
         <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
             
-            <!-- HIDDEN ADMIN ACCESS TRIGGER: Click this area 5 times quickly to open the admin password prompt -->
+            <!-- HIDDEN ADMIN ACCESS TRIGGER -->
             <div class="flex items-center space-x-3 cursor-pointer" id="adminTrigger">
                 <div class="text-3xl">🎾</div>
                 <div>
                     <h1 class="text-lg sm:text-2xl font-extrabold">Area 51 Pickleball</h1>
-                    <p class="text-xs sm:text-sm text-gray-400 hidden sm:block">Premium Court Booking System</p>
+                    <p class="text-xs sm:text-sm text-gray-400 hidden sm:block">Real-time Court Booking System</p>
                 </div>
             </div>
 
-            <!-- NEW: LOCATION AND WHATSAPP BUTTONS -->
+            <!-- LOCATION AND WHATSAPP BUTTONS -->
             <div class="flex space-x-3">
-                <!-- Location Button -->
                 <a href="https://maps.app.goo.gl/5dwYtzEj3mLkPxSd7" target="_blank" 
                    class="flex items-center bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors shadow-md">
                     <span class="text-lg mr-1">📍</span> Location
                 </a>
-                <!-- WhatsApp Admin Button -->
                 <button onclick="contactAdmin()" 
                         class="flex items-center bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors shadow-md">
-                    <span class="text-lg mr-1">💬</span> WhatsApp
+                    <span class="text-lg mr-1">💬</span> WhatsApp Admin
                 </button>
             </div>
-            <!-- Removed Admin Button to hide it from general users -->
             <div class="h-6 hidden sm:block"></div>
         </div>
     </header>
@@ -91,42 +93,49 @@
                 <div class="mb-6">
                     <h4 class="text-base sm:text-lg font-semibold mb-4 flex items-center space-x-3">
                         <span>Available Time Slots (₹500/hour)</span>
-                        <span class="text-xs text-gray-500 font-normal">| Tap to Select</span>
+                        <span class="text-xs text-gray-500 font-normal">| Click to Add to Cart</span>
                     </h4>
                     <div id="pickleballSlots" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3">
-                        <!-- Slots will be rendered here -->
+                        <p class="col-span-full text-center py-4 text-gray-500" id="loadingMessage">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-purple-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Loading available slots...
+                        </p>
                     </div>
                 </div>
 
                 <div class="bg-blue-50 p-4 rounded-lg text-sm mb-6">
                     <p class="font-semibold text-blue-800 mb-1">Status Key:</p>
                     <div class="flex flex-wrap gap-4 text-xs">
-                        <span class="px-2 py-1 rounded-full bg-green-500 text-white font-medium">Available</span>
-                        <span class="px-2 py-1 rounded-full bg-yellow-500 text-gray-800 font-medium">Pending (In Cart by user)</span>
+                        <span class="px-2 py-1 rounded-full bg-green-500 text-white font-medium">Available (Click to Add)</span>
+                        <span class="px-2 py-1 rounded-full bg-yellow-500 text-gray-800 font-medium border border-yellow-600">Selected in Cart</span>
                         <span class="px-2 py-1 rounded-full bg-red-600 text-white font-medium">Confirmed/Booked</span>
                     </div>
                 </div>
                 
-                <button onclick="addSelectedToCart()" id="addToCartBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-6 py-3 rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl">
-                    Add Selected Slots to Cart
-                </button>
             </div>
 
-            <div id="cartSection" class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 fade-in">
-                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Your Cart (Slots to be confirmed)</h3>
-                <div id="cartItems" class="space-y-3 mb-4">
-                    <p class="text-gray-500 text-base">No slots currently selected.</p>
+            <!-- Cart Section -->
+            <div id="cartSection" class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 fade-in mb-8">
+                <h3 class="text-2xl sm:text-3xl font-bold text-purple-600 mb-6 border-b pb-3 flex justify-between items-center">
+                    Your Cart <span id="cartCount" class="text-lg bg-gray-200 text-gray-700 px-3 py-1 rounded-full font-semibold">0 Slots</span>
+                </h3>
+                
+                <div id="cartTable" class="min-h-[50px]">
+                    <p class="text-gray-500 text-center py-4">Your selected slots will appear here.</p>
                 </div>
-                <div class="border-t pt-4">
-                    <div class="flex justify-between items-center text-lg sm:text-xl font-bold">
-                        <span>Total:</span>
-                        <span id="cartTotal">₹0</span>
+                
+                <div class="flex justify-between items-center mt-6 pt-4 border-t">
+                    <div class="text-xl font-bold text-gray-800">
+                        Total: <span id="cartTotal" class="text-purple-600">₹0</span>
                     </div>
-                    <button onclick="showUserDetailsForm()" id="checkoutBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors disabled:bg-gray-400 text-lg shadow-md" disabled>
-                        Confirm Booking & Enter Details
+                    <button onclick="showUserDetailsForm()" id="confirmCartBtn" disabled 
+                            class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold transition-colors shadow-lg disabled:bg-gray-400 disabled:shadow-none">
+                        Confirm Booking
                     </button>
                 </div>
             </div>
+            <!-- End Cart Section -->
+
         </div>
 
         <!-- Admin Dashboard Section -->
@@ -136,23 +145,19 @@
                 
                 <!-- Stats -->
                 <div class="grid sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                    <div class="bg-yellow-50 p-4 rounded-lg shadow-inner">
-                        <h4 class="font-semibold text-yellow-800 text-sm">Pending Bookings</h4>
-                        <p class="text-xl sm:text-2xl font-bold text-yellow-600" id="pendingBookingsCount">0</p>
-                    </div>
                     <div class="bg-red-50 p-4 rounded-lg shadow-inner">
-                        <h4 class="font-semibold text-red-800 text-sm">Total Confirmed</h4>
+                        <h4 class="font-semibold text-red-800 text-sm">Total Active Bookings</h4>
                         <p class="text-xl sm:text-2xl font-bold text-red-600" id="confirmedBookingsCount">0</p>
                     </div>
-                    <div class="bg-green-50 p-4 rounded-lg shadow-inner">
-                        <h4 class="font-semibold text-green-800 text-sm">Total Revenue</h4>
+                    <div class="bg-green-50 p-4 rounded-lg shadow-inner col-span-2">
+                        <h4 class="font-semibold text-green-800 text-sm">Total Revenue (Based on Confirmed)</h4>
                         <p class="text-xl sm:text-2xl font-bold text-green-600" id="totalRevenue">₹0</p>
                     </div>
                 </div>
                 
                 <!-- Bookings Table -->
                 <div class="mb-6">
-                    <h4 class="text-lg sm:text-xl font-semibold mb-3">All Bookings (Pending/Confirmed)</h4>
+                    <h4 class="text-lg sm:text-xl font-semibold mb-3">All Confirmed Bookings</h4>
                     <div class="overflow-x-auto border rounded-lg">
                         <table class="w-full border-collapse text-sm">
                             <thead>
@@ -161,13 +166,12 @@
                                     <th class="border-b px-3 py-3 text-left">Date & Time</th>
                                     <th class="border-b px-3 py-3 text-left">Venue</th>
                                     <th class="border-b px-3 py-3 text-left">Price</th>
-                                    <th class="border-b px-3 py-3 text-left">Status</th>
                                     <th class="border-b px-3 py-3 text-left">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="bookingsTable">
                                 <tr>
-                                    <td colspan="6" class="px-4 py-4 text-center text-gray-500">No bookings yet</td>
+                                    <td colspan="5" class="px-4 py-4 text-center text-gray-500">No confirmed bookings yet</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -181,13 +185,11 @@
         </div>
     </div>
 
-    <!-- Modals -->
-
     <!-- User Details Form Modal -->
-    <div id="userDetailsModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
+    <div id="userDetailsModal" class="fixed inset-0 custom-modal-backdrop hidden items-center justify-center z-50">
         <div class="bg-white rounded-xl p-6 sm:p-8 max-w-lg mx-4 text-center fade-in shadow-2xl">
-            <h2 class="text-2xl font-bold text-purple-600 mb-4">Complete Your Booking</h2>
-            <p class="text-gray-600 mb-6">Please provide your details so that we can confirm your slot and contact you.</p>
+            <h2 class="text-2xl font-bold text-purple-600 mb-4">Finalize Your Booking</h2>
+            <p class="text-gray-600 mb-6">You are confirming <span id="modalCartCount" class="font-semibold text-purple-700">0</span> slots for a total of <span id="modalCartTotal" class="font-bold text-purple-700">₹0</span>. This action instantly books the slots.</p>
             
             <div class="space-y-4 text-left">
                 <div>
@@ -208,44 +210,35 @@
             
             <div class="mt-8 flex justify-end space-x-3">
                 <button onclick="closeUserDetailsModal()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold transition">
-                    Cancel
+                    Go Back (Edit Cart)
                 </button>
-                <button onclick="submitUserDetails()" id="submitDetailsBtn" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition disabled:bg-gray-400">
-                    Confirm & Notify Admin
+                <button onclick="submitBookingRequest()" id="submitDetailsBtn" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition disabled:bg-gray-400">
+                    Confirm & Pay (Final Step)
                 </button>
             </div>
+            <p class="text-xs text-gray-500 mt-3">By confirming, these slots are instantly marked as booked on the system.</p>
         </div>
     </div>
     
-    <script>
+    <script type="module">
+        // Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, writeBatch, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- GLOBAL STATE & CONFIGURATION ---
-        // Simulating single user environment since login is bypassed. User ID determines slot availability.
-        const userId = 'GUEST_USER_' + (localStorage.getItem('area51UserId') || Math.random().toString(36).substring(2, 9));
-        localStorage.setItem('area51UserId', userId); 
         
-        let currentUser = { phone: '9999999999', id: userId }; // Dummy user data
-        
-        // This array holds the currently selected slots on the client-side *before* adding to cart
-        let selectedSlots = []; 
-        
-        // This array holds the list of slots that the user intends to book (becomes PENDING bookings)
-        let pendingBookingDraft = []; 
-        
-        // Main data store for all bookings, shared across all users (simulated multi-user data)
-        let bookings = JSON.parse(localStorage.getItem('area51Bookings') || '[]');
-        
-        // UPDATED: New Admin WhatsApp Number (+91 7972409893)
-        const ADMIN_WHATSAPP = '917972409893';
-        // NEW: Area 51 Location Link
-        const AREA_51_LOCATION = 'https://maps.app.goo.gl/5dwYtzEj3mLkPxSd7'; 
+        let db;
+        let auth;
+        let userId = 'loading';
+        let bookings = []; // Now populated by Firestore snapshot (only 'confirmed' bookings)
+        let pendingBookingDraft = []; // Client-side array of slot IDs in the cart
         
         const SLOT_PRICE = 500;
+        const ADMIN_WHATSAPP = '917972409893';
+        const AREA_51_LOCATION = 'https://maps.app.goo.gl/5dwYtzEj3mLkPxSd7'; 
 
         // --- UTILITIES ---
-
-        function saveBookings() {
-            localStorage.setItem('area51Bookings', JSON.stringify(bookings));
-        }
 
         function formatDateToDisplay(dateString) {
             if (!dateString) return 'Invalid Date';
@@ -254,252 +247,14 @@
                 const day = date.getDate().toString().padStart(2, '0');
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const month = monthNames[date.getMonth()];
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
+                return `${day}/${month}`;
             } catch (error) {
                 return 'Invalid Date';
             }
         }
-
-        // NEW: Function for the "WhatsApp Admin" button
-        function contactAdmin() {
-            const message = "Hi, I have a general question about court bookings at Area 51 Pickleball.";
-            const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappURL, '_blank', 'noopener,noreferrer');
-        }
-
-
-        // --- SLOT GENERATION & INTERACTION ---
-
-        function generatePickleballSlots() {
-            const container = document.getElementById('pickleballSlots');
-            const date = document.getElementById('pickleballDate').value;
-            const courtType = document.getElementById('courtType').value;
-            
-            container.innerHTML = '';
-            
-            for (let hour = 7; hour <= 22; hour++) {
-                const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
-                const slotId = `pickleball-${courtType}-${date}-${timeSlot}`;
-                
-                // Check current status from the main bookings array
-                const currentBooking = bookings.find(b => b.id === slotId);
-                const isBookedConfirmed = currentBooking && currentBooking.status === 'confirmed';
-                const isBookedPending = currentBooking && currentBooking.status === 'pending';
-                
-                // Check if currently selected by this user (for visual cue before adding to cart)
-                const isSelectedByCurrentUser = selectedSlots.includes(slotId);
-                
-                const button = document.createElement('button');
-                button.textContent = timeSlot;
-                button.disabled = isBookedConfirmed || (isBookedPending && currentBooking.user !== currentUser.id); // Block if Confirmed or Pending by someone else
-                
-                let buttonClass = 'slot-available';
-
-                if (isBookedConfirmed) {
-                    buttonClass = 'slot-booked';
-                } else if (isBookedPending) {
-                    buttonClass = 'slot-pending';
-                    // Allow the user who placed the pending booking to interact (though they shouldn't)
-                    if (currentBooking.user === currentUser.id) {
-                         button.disabled = false;
-                    }
-                } else if (isSelectedByCurrentUser) {
-                    // Only applies to truly available slots the user has clicked
-                    buttonClass = 'slot-available-selected';
-                }
-                
-                button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors text-white shadow-md ${buttonClass} ${button.disabled ? 'cursor-not-allowed opacity-80' : 'hover:opacity-90'}`;
-
-                if (!button.disabled && !isBookedPending && !isBookedConfirmed) {
-                    button.onclick = () => selectSlot(slotId);
-                } else if (isBookedPending && currentBooking.user === currentUser.id) {
-                    // Temporary action for pending slots by current user - for demonstration, we keep it simple
-                    // In a real app, this would show "view details" or "remove from cart".
-                    button.onclick = () => console.log('This slot is pending for you. Complete the booking in your cart!');
-                }
-
-                container.appendChild(button);
-            }
-        }
-
-        function selectSlot(slotId) {
-            const index = selectedSlots.indexOf(slotId);
-            
-            if (index > -1) {
-                // Slot is already selected, unselect it
-                selectedSlots.splice(index, 1);
-            } else {
-                // Slot is not selected, select it (max 2 slots per cart session)
-                if (selectedSlots.length >= 2) {
-                    alert('You can only select a maximum of 2 slots per transaction.');
-                    return;
-                }
-                selectedSlots.push(slotId);
-            }
-            
-            updateCartDisplay();
-            // Re-render to update color
-            generatePickleballSlots();
-        }
-
-        function addSelectedToCart() {
-            if (selectedSlots.length === 0) {
-                alert('Please select at least one time slot first.');
-                return;
-            }
-            
-            // Move the current selection into the draft to simulate a "cart"
-            pendingBookingDraft = [];
-            
-            const date = document.getElementById('pickleballDate').value;
-            const courtType = document.getElementById('courtType').value;
-            
-            selectedSlots.forEach(slotId => {
-                const timeSlot = slotId.split('-').pop(); // Get time from ID
-                
-                const bookingDraft = {
-                    id: slotId,
-                    sport: 'pickleball',
-                    venue: courtType,
-                    date: date,
-                    time: timeSlot,
-                    price: SLOT_PRICE,
-                    user: currentUser.id,
-                    customerName: null,
-                    customerWhatsapp: null,
-                    bookingTime: new Date().toISOString(),
-                    status: 'pending-draft' // A temporary status for the draft cart
-                };
-                pendingBookingDraft.push(bookingDraft);
-            });
-            
-            // Clear client-side selection
-            selectedSlots = [];
-
-            updateCartDisplay();
-            // Using a simple message box instead of alert() for better UX
-            showMessage('✅ Slot(s) Added to Cart', `${pendingBookingDraft.length} slot(s) moved to 'Your Cart'. Click 'Confirm Booking & Enter Details' to proceed.`, 'green');
-        }
-
-        function removeFromCart(index) {
-            // Remove from the draft
-            pendingBookingDraft.splice(index, 1);
-            updateCartDisplay();
-            // Re-render to allow selection again
-            generatePickleballSlots();
-        }
-
-        function updateCartDisplay() {
-            const container = document.getElementById('cartItems');
-            const totalElement = document.getElementById('cartTotal');
-            const checkoutBtn = document.getElementById('checkoutBtn');
-            
-            if (pendingBookingDraft.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-base">No slots currently selected.</p>';
-                totalElement.textContent = '₹0';
-                checkoutBtn.disabled = true;
-                return;
-            }
-            
-            container.innerHTML = pendingBookingDraft.map((item, index) => `
-                <div class="flex justify-between items-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <div class="flex-1">
-                        <div class="flex items-center space-x-3 mb-1">
-                            <span class="font-bold text-lg text-gray-800">Pickleball</span>
-                            <span class="text-sm bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium capitalize">${item.venue}</span>
-                        </div>
-                        <div class="space-y-0.5 text-gray-700">
-                            <span class="text-sm font-semibold">📅 ${formatDateToDisplay(item.date)}</span>
-                            <span class="text-sm font-semibold ml-3">⏰ ${item.time}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="font-bold text-xl text-purple-600">₹${item.price}</span>
-                        <button onclick="removeFromCart(${index})" class="bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800 p-2 rounded-full transition-colors">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-            
-            const total = pendingBookingDraft.reduce((sum, item) => sum + item.price, 0);
-            totalElement.textContent = `₹${total}`;
-            checkoutBtn.disabled = false;
-        }
         
-        // --- CHECKOUT & WHATSAPP FUNCTIONS ---
-
-        function showUserDetailsForm() {
-            if (pendingBookingDraft.length === 0) return;
-            // Show modal
-            document.getElementById('userDetailsModal').classList.remove('hidden');
-            document.getElementById('userDetailsModal').classList.add('flex');
-            document.getElementById('customerName').focus();
-        }
-
-        function closeUserDetailsModal() {
-            document.getElementById('userDetailsModal').classList.add('hidden');
-            document.getElementById('userDetailsModal').classList.remove('flex');
-        }
-
-        function submitUserDetails() {
-            const name = document.getElementById('customerName').value.trim();
-            const whatsapp = document.getElementById('customerWhatsapp').value.trim();
-            
-            if (!name || whatsapp.length !== 10 || isNaN(whatsapp)) {
-                showMessage('Missing Details', 'Please enter your full name and a valid 10-digit WhatsApp number.', 'red');
-                return;
-            }
-            
-            const total = pendingBookingDraft.reduce((sum, item) => sum + item.price, 0);
-            const bookingDetailsText = pendingBookingDraft.map(item => 
-                `*${item.venue}* Court on *${formatDateToDisplay(item.date)}* at *${item.time}* (₹${item.price})`
-            ).join('%0A- '); // %0A is newline
-            
-            // 1. Convert Draft to PENDING Bookings (Yellow Status) and Save
-            const newPendingBookings = pendingBookingDraft.map(draft => ({
-                ...draft, 
-                customerName: name,
-                customerWhatsapp: whatsapp,
-                status: 'pending' // Officially pending now, visible to all as yellow
-            }));
-
-            // Check for potential clashes (highly unlikely here, but good practice)
-            newPendingBookings.forEach(newBooking => {
-                // Remove existing slot if it was somehow in the global bookings with a bad status
-                bookings = bookings.filter(b => b.id !== newBooking.id); 
-                bookings.push(newBooking);
-            });
-            
-            saveBookings();
-            
-            // 2. Open WhatsApp link (Customer to Admin)
-            const whatsappMessage = 
-                `*NEW BOOKING REQUEST - PLEASE CONFIRM*%0A%0A` +
-                `👤 *Customer:* ${name}%0A` +
-                `📞 *WhatsApp:* +91${whatsapp}%0A%0A` +
-                `🎾 *Booking Details (Total ₹${total}):*%0A` +
-                `- ${bookingDetailsText}%0A%0A` +
-                `_Kindly confirm this booking in the Admin Dashboard at your earliest convenience._`;
-
-            const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
-            window.open(whatsappURL, '_blank', 'noopener,noreferrer');
-
-            // 3. Cleanup UI
-            pendingBookingDraft = []; // Clear local cart
-            closeUserDetailsModal();
-            updateCartDisplay();
-            generatePickleballSlots(); // Refresh slots to show yellow status
-
-            showMessage('Booking Request Sent!', 'The slots are temporarily held (Yellow). The Admin must confirm them to secure your booking. WhatsApp chat opened.', 'purple');
-        }
-
-        // --- ADMIN FUNCTIONS ---
-        
-        // Custom message box utility (since alert() is forbidden)
         function showMessage(title, message, type = 'blue') {
-            const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-500' : 'bg-blue-500';
+            const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-600' : 'bg-blue-500';
             const html = `
                 <div id="custom-message-box" class="fixed top-0 left-1/2 -translate-x-1/2 mt-4 z-[100] p-4 rounded-lg shadow-xl text-white ${bgColor} fade-in" style="min-width: 300px;">
                     <h4 class="font-bold text-lg">${title}</h4>
@@ -513,11 +268,332 @@
             }, 5000);
         }
 
-        // --- HIDDEN ADMIN ACCESS LOGIC (5-click trigger) ---
+        function contactAdmin() {
+            const message = "Hi, I have a general question about court bookings at Area 51 Pickleball.";
+            const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+        }
+
+        // --- FIREBASE INITIALIZATION ---
+
+        async function initFirebase() {
+            try {
+                // Global variables are provided by the canvas environment
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                if (Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("Firebase configuration is missing.");
+                }
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Set Firestore logging level to debug
+                setLogLevel('debug');
+                
+                // 1. Sign in
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // 2. Auth listener to set global userId and start data listener
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated with ID:", userId);
+                        startBookingListener(appId);
+                        
+                        // Load stored user details if available
+                        const storedName = localStorage.getItem(`${userId}_name`);
+                        const storedWhatsapp = localStorage.getItem(`${userId}_whatsapp`);
+                        if (storedName) document.getElementById('customerName').value = storedName;
+                        if (storedWhatsapp) document.getElementById('customerWhatsapp').value = storedWhatsapp;
+
+                    } else {
+                        console.error("Authentication failed or not ready.");
+                        userId = 'unauthenticated';
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                document.getElementById('loadingMessage').textContent = 'Error loading data. Please check console.';
+            }
+        }
+
+        // --- FIREBASE REAL-TIME LISTENER ---
+
+        function startBookingListener(appId) {
+            const collectionPath = `/artifacts/${appId}/public/data/bookings`;
+            const q = query(collection(db, collectionPath));
+            
+            onSnapshot(q, (snapshot) => {
+                bookings = [];
+                snapshot.forEach((doc) => {
+                    // Only include CONFIRMED bookings in the main list
+                    const data = doc.data();
+                    if (data.status === 'confirmed') {
+                         bookings.push({ ...data, fsId: doc.id });
+                    }
+                });
+                
+                console.log("Realtime confirmed bookings updated:", bookings.length);
+                generatePickleballSlots();
+                updateCartUI(); // Update slots and cart
+                
+                // Only update admin dashboard if it's visible
+                if (!document.getElementById('adminSection').classList.contains('hidden')) {
+                    updateAdminDashboard();
+                }
+                document.getElementById('loadingMessage').classList.add('hidden');
+
+            }, (error) => {
+                console.error("Firestore listen failed:", error);
+                document.getElementById('loadingMessage').textContent = 'Connection error. Please refresh.';
+            });
+        }
+        
+        // --- SLOT GENERATION & INTERACTION ---
+
+        function generatePickleballSlots() {
+            const container = document.getElementById('pickleballSlots');
+            const date = document.getElementById('pickleballDate').value;
+            const courtType = document.getElementById('courtType').value;
+            
+            container.innerHTML = '';
+            
+            for (let hour = 7; hour <= 22; hour++) {
+                const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
+                const slotId = `${courtType}-${date}-${timeSlot}`;
+                
+                // 1. Check current confirmed status from Firestore
+                const isBookedConfirmed = bookings.some(b => b.id === slotId);
+                
+                // 2. Check if currently in client-side cart
+                const isInCart = pendingBookingDraft.includes(slotId);
+                
+                const button = document.createElement('button');
+                button.textContent = timeSlot;
+                
+                let buttonClass = 'slot-available';
+                let isDisabled = false;
+
+                if (isBookedConfirmed) {
+                    buttonClass = 'slot-booked';
+                    isDisabled = true;
+                } else if (isInCart) {
+                    buttonClass = 'slot-selected';
+                    // Not disabled, can be unselected
+                } else {
+                    buttonClass = 'slot-available';
+                }
+                
+                button.className = `slot-btn px-3 py-2 rounded-lg font-medium text-sm transition-colors shadow-md ${buttonClass} ${isDisabled ? 'cursor-not-allowed opacity-80' : 'hover:opacity-90'}`;
+                button.disabled = isDisabled;
+                button.dataset.slotId = slotId;
+
+                if (!isDisabled) {
+                    button.onclick = () => toggleSlotSelection(slotId);
+                }
+
+                container.appendChild(button);
+            }
+        }
+        
+        function toggleSlotSelection(slotId) {
+            const index = pendingBookingDraft.indexOf(slotId);
+            
+            if (index > -1) {
+                // Remove from cart
+                pendingBookingDraft.splice(index, 1);
+            } else {
+                // Add to cart
+                pendingBookingDraft.push(slotId);
+            }
+            
+            // Re-render slots and cart UI
+            generatePickleballSlots(); 
+            updateCartUI();
+        }
+
+        // --- CART UI FUNCTIONS ---
+
+        function updateCartUI() {
+            const cartContainer = document.getElementById('cartTable');
+            const total = pendingBookingDraft.length * SLOT_PRICE;
+            const btn = document.getElementById('confirmCartBtn');
+
+            document.getElementById('cartCount').textContent = `${pendingBookingDraft.length} Slot${pendingBookingDraft.length !== 1 ? 's' : ''}`;
+            document.getElementById('cartTotal').textContent = `₹${total}`;
+            
+            btn.disabled = pendingBookingDraft.length === 0;
+
+            if (pendingBookingDraft.length === 0) {
+                cartContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Your selected slots will appear here.</p>';
+                return;
+            }
+
+            // Generate detailed cart items
+            const cartItemsHtml = pendingBookingDraft.map(id => {
+                const [venue, date, time] = id.split('-');
+                return `
+                    <div class="flex justify-between items-center p-3 mb-2 bg-gray-50 rounded-lg shadow-sm">
+                        <div class="text-sm font-medium">
+                            ${formatDateToDisplay(date)} @ ${time} (${venue.toUpperCase()})
+                        </div>
+                        <div class="font-bold text-gray-700">
+                            ₹${SLOT_PRICE}
+                        </div>
+                        <button onclick="toggleSlotSelection('${id}')" class="text-red-500 hover:text-red-700 text-sm font-semibold transition">
+                            Remove
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            cartContainer.innerHTML = cartItemsHtml;
+        }
+
+
+        // --- BOOKING CONFIRMATION FLOW (MODIFIED) ---
+
+        function showUserDetailsForm() {
+            if (pendingBookingDraft.length === 0) {
+                showMessage('Cart Empty', 'Please select at least one slot to book.', 'red');
+                return;
+            }
+            const total = pendingBookingDraft.length * SLOT_PRICE;
+            
+            document.getElementById('modalCartCount').textContent = `${pendingBookingDraft.length}`;
+            document.getElementById('modalCartTotal').textContent = `₹${total}`;
+            
+            document.getElementById('userDetailsModal').classList.remove('hidden');
+            document.getElementById('userDetailsModal').classList.add('flex');
+            document.getElementById('customerName').focus();
+        }
+
+        function closeUserDetailsModal() {
+            document.getElementById('userDetailsModal').classList.add('hidden');
+            document.getElementById('userDetailsModal').classList.remove('flex');
+        }
+
+        async function submitBookingRequest() {
+            if (pendingBookingDraft.length === 0 || userId === 'loading' || userId === 'unauthenticated') {
+                showMessage('Error', 'No slots in cart or system not ready. Please try again.', 'red');
+                return;
+            }
+            
+            const name = document.getElementById('customerName').value.trim();
+            const whatsapp = document.getElementById('customerWhatsapp').value.trim();
+            
+            if (!name || whatsapp.length !== 10 || isNaN(whatsapp)) {
+                showMessage('Missing Details', 'Please enter your full name and a valid 10-digit WhatsApp number.', 'red');
+                return;
+            }
+            
+            // Save details to localStorage for next time
+            localStorage.setItem(`${userId}_name`, name);
+            localStorage.setItem(`${userId}_whatsapp`, whatsapp);
+            
+            const submitBtn = document.getElementById('submitDetailsBtn');
+            submitBtn.textContent = 'Processing...';
+            submitBtn.disabled = true;
+
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const collectionPath = `/artifacts/${appId}/public/data/bookings`;
+                const batch = writeBatch(db);
+                
+                const bookedSlots = [];
+
+                // 1. Process all slots in the cart
+                for (const slotId of pendingBookingDraft) {
+                    // Quick check if another user booked it in the last few seconds
+                    const isClashed = bookings.some(b => b.id === slotId);
+                    if (isClashed) {
+                         // Skip this slot but process others
+                        showMessage('Slot Clash', `Slot ${slotId.split('-')[2]} was just booked by another user and will be removed from your cart.`, 'red');
+                        continue;
+                    }
+                    
+                    const [venue, date, time] = slotId.split('-');
+                    
+                    // Use the slotId as the Firestore document ID to ensure uniqueness/overwrite protection
+                    const bookingRef = doc(db, collectionPath, slotId);
+                    
+                    batch.set(bookingRef, {
+                        id: slotId, 
+                        sport: 'pickleball',
+                        venue: venue,
+                        date: date,
+                        time: time,
+                        price: SLOT_PRICE,
+                        user: userId, // User who requested the booking
+                        customerName: name,
+                        customerWhatsapp: whatsapp,
+                        bookingTime: serverTimestamp(),
+                        status: 'confirmed' // INSTANTLY CONFIRMED as per user request
+                    });
+                    
+                    bookedSlots.push({ venue, date, time });
+                }
+
+                if (bookedSlots.length === 0) {
+                    showMessage('Booking Failed', 'All slots were taken or no valid slots remained in cart.', 'red');
+                    closeUserDetailsModal();
+                    pendingBookingDraft = [];
+                    generatePickleballSlots();
+                    updateCartUI();
+                    return;
+                }
+
+                // 2. Commit the batch write to Firestore (all or nothing)
+                await batch.commit();
+
+                // 3. --- WhatsApp User Notification (to Admin) ---
+                const slotSummary = bookedSlots.map(s => `- ${s.venue} on ${formatDateToDisplay(s.date)} @ ${s.time}`).join('%0A');
+                const totalAmount = bookedSlots.length * SLOT_PRICE;
+                
+                const whatsappMessage = 
+                    `✅ *NEW CONFIRMED BOOKING - ACTION REQUIRED* ✅%0A%0A` +
+                    `👤 *Customer:* ${name}%0A` +
+                    `📞 *WhatsApp:* +91${whatsapp}%0A` +
+                    `💸 *Total Amount:* ₹${totalAmount}%0A%0A` +
+                    `🎾 *Booked Slots:*%0A` +
+                    `${slotSummary}%0A%0A` +
+                    `_Please contact the customer to confirm payment/details. The slot is now held on the system._`;
+
+                const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
+                window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+
+                // 4. --- UI Cleanup ---
+                closeUserDetailsModal();
+                pendingBookingDraft = []; // Clear cart after successful booking
+                generatePickleballSlots();
+                updateCartUI(); 
+                showMessage('Booking Confirmed!', `Your ${bookedSlots.length} slot(s) are now CONFIRMED! WhatsApp chat opened to notify Admin.`, 'green');
+
+            } catch (error) {
+                console.error("Error submitting confirmed booking:", error);
+                showMessage('Booking Failed', 'Could not save booking. Please check your connection.', 'red');
+            } finally {
+                submitBtn.textContent = 'Confirm & Pay (Final Step)';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        
         let adminClickCount = 0;
         let adminTimeout = null;
         const ADMIN_ACCESS_CLICKS = 5;
-        const CLICK_TIMEOUT_MS = 1500; // 1.5 seconds
+        const CLICK_TIMEOUT_MS = 1500; 
 
         function checkAdminAccess() {
             adminClickCount++;
@@ -526,141 +602,99 @@
                 clearTimeout(adminTimeout);
             }
 
-            // Reset counter after timeout
             adminTimeout = setTimeout(() => {
                 adminClickCount = 0;
             }, CLICK_TIMEOUT_MS);
 
             if (adminClickCount >= ADMIN_ACCESS_CLICKS) {
-                adminClickCount = 0; // Reset immediately to prevent multiple popups
+                adminClickCount = 0;
                 clearTimeout(adminTimeout);
                 showAdminLogin();
             }
         }
         
         function showAdminLogin() {
+            // NOTE: Using window.prompt is generally discouraged, but used here for simple Admin login.
             const password = prompt('🔐 Enter Admin Password:\n\n(Hint: area51admin)');
             if (password === 'area51admin') {
                 document.getElementById('bookingSection').classList.add('hidden');
                 document.getElementById('adminSection').classList.remove('hidden');
-                updateAdminDashboard();
+                updateAdminDashboard(); 
                 showMessage('Welcome Admin!', 'You have successfully accessed the dashboard.', 'green');
             } else if (password !== null) {
-                showMessage('Access Denied', 'Invalid password! Access attempt logged.', 'red');
+                showMessage('Access Denied', 'Invalid password!', 'red');
             }
         }
 
         function updateAdminDashboard() {
-            // Recalculate stats based on the latest bookings array
-            const pendingCount = bookings.filter(b => b.status === 'pending').length;
-            const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
+            // Since all bookings in the list are now 'confirmed', we just list them
+            const confirmedBookings = bookings;
+            
             const confirmedCount = confirmedBookings.length;
             const totalRevenue = confirmedBookings.reduce((sum, b) => sum + b.price, 0);
             
-            document.getElementById('pendingBookingsCount').textContent = pendingCount;
             document.getElementById('confirmedBookingsCount').textContent = confirmedCount;
             document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
             
             const tableBody = document.getElementById('bookingsTable');
-            const allBookings = [...bookings].sort((a, b) => new Date(a.date) - new Date(b.date) || a.time.localeCompare(b.time));
+            const allBookings = [...confirmedBookings].sort((a, b) => {
+                // Sort by date, then time
+                if (a.date < b.date) return -1;
+                if (a.date > b.date) return 1;
+                return a.time.localeCompare(b.time);
+            });
 
             if (allBookings.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No bookings yet</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">No confirmed bookings yet</td></tr>';
             } else {
-                tableBody.innerHTML = allBookings.map((booking, index) => `
-                    <tr class="transition duration-100 ${booking.status === 'pending' ? 'bg-yellow-100 hover:bg-yellow-200' : 'bg-red-50 hover:bg-red-100'}">
-                        <td class="border-b px-3 py-3">
-                            <span class="font-semibold">${booking.customerName || 'N/A'}</span>
-                            <div class="text-xs text-gray-500">+91${booking.customerWhatsapp || 'N/A'}</div>
-                        </td>
-                        <td class="border-b px-3 py-3">${formatDateToDisplay(booking.date)} @ ${booking.time}</td>
-                        <td class="border-b px-3 py-3 capitalize">${booking.venue}</td>
-                        <td class="border-b px-3 py-3 font-bold">₹${booking.price}</td>
-                        <td class="border-b px-3 py-3">
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${booking.status === 'confirmed' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'}">
-                                ${booking.status.toUpperCase()}
-                            </span>
-                        </td>
-                        <td class="border-b px-3 py-3 space-y-1">
-                            ${booking.status === 'pending' ? `
-                                <button onclick="confirmBookingAdmin('${booking.id}')" class="w-full bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
-                                    Confirm & Notify
-                                </button>` : `<button class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs font-medium cursor-not-allowed">Confirmed</button>`
-                            }
-                            <button onclick="cancelBookingAdmin('${booking.id}')" class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
-                                Cancel
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+                tableBody.innerHTML = allBookings.map((booking, index) => {
+                    // Since all are confirmed, the status is always RED
+                    const statusClass = 'bg-red-200 text-red-800';
+                    const rowClass = 'bg-red-50 hover:bg-red-100';
+
+                    return `
+                        <tr class="transition duration-100 ${rowClass}">
+                            <td class="border-b px-3 py-3">
+                                <span class="font-semibold">${booking.customerName || 'N/A'}</span>
+                                <div class="text-xs text-gray-500">+91${booking.customerWhatsapp || 'N/A'}</div>
+                                <div class="text-[10px] text-gray-400 truncate w-32">${booking.user}</div>
+                            </td>
+                            <td class="border-b px-3 py-3">${formatDateToDisplay(booking.date)} @ ${booking.time}</td>
+                            <td class="border-b px-3 py-3 capitalize">${booking.venue}</td>
+                            <td class="border-b px-3 py-3 font-bold">₹${booking.price}</td>
+                            <td class="border-b px-3 py-3 space-y-1">
+                                <button onclick="cancelBookingAdmin('${booking.fsId}', '${booking.id}')" class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
+                                    Cancel & Notify
+                                </button>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass} block mt-1">CONFIRMED</span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             }
         }
-
-        function confirmBookingAdmin(slotId) {
-            const bookingIndex = bookings.findIndex(b => b.id === slotId);
+        
+        async function cancelBookingAdmin(fsId, slotId) {
+            const booking = bookings.find(b => b.fsId === fsId);
             
-            if (bookingIndex === -1) {
-                showMessage('Error', 'Booking not found!', 'red');
-                return;
-            }
+            if (!booking) { showMessage('Error', 'Booking not found!', 'red'); return; }
 
-            const booking = bookings[bookingIndex];
-
-            if (booking.status === 'confirmed') {
-                showMessage('Already Confirmed', 'This booking is already confirmed!', 'blue');
-                return;
-            }
+            // Replace standard alert with custom confirmation
+            const confirmed = window.confirm(`Are you sure you want to CANCEL this booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}? This will free the slot immediately.`);
             
-            // Note: Using window.confirm() here as it is only in the ADMIN-protected function
-            if (window.confirm(`Confirm booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
-                
-                // 1. Update status to 'confirmed' (Red)
-                bookings[bookingIndex].status = 'confirmed';
-                saveBookings();
-                
+            if (!confirmed) { return; }
+
+            const cancelBtn = document.querySelector(`button[onclick="cancelBookingAdmin('${fsId}', '${slotId}')"]`);
+            if (cancelBtn) { cancelBtn.textContent = 'Processing...'; cancelBtn.disabled = true; }
+
+            try {
+                // 1. Delete booking from Firestore (using fsId)
+                const bookingRef = doc(db, `/artifacts/${__app_id}/public/data/bookings`, fsId);
+                await setDoc(bookingRef, { status: 'cancelled', cancelledByAdmin: true, cancellationTime: serverTimestamp() }, { merge: true });
+
                 // 2. Open Admin to Customer WhatsApp link
-                const customerMessage = `🎉 *AREA 51 BOOKING CONFIRMATION* 🎉%0A%0A` +
-                                        `Hi ${booking.customerName}! Great News! Your *Pickleball* booking is officially *CONFIRMED*!%0A%0A` +
-                                        `Details:%0A` +
-                                        `📅 Date: ${formatDateToDisplay(booking.date)}%0A` +
-                                        `⏰ Time: ${booking.time}%0A` +
-                                        `📍 Venue: ${booking.venue.toUpperCase()}%0A` +
-                                        `💰 Amount: ₹${booking.price} (If paid, else payment due on arrival)%0A%0A` +
-                                        `*Find our location here:* ${AREA_51_LOCATION}%0A%0A` + // ADDED LOCATION LINK HERE
-                                        `We look forward to seeing you. Let us know if you have any questions!%0A%0A` +
-                                        `Area 51 Sports Team`;
-                
-                const customerWhatsappNumber = `91${booking.customerWhatsapp}`; // Assuming Indian numbers
-                const whatsappURL = `https://wa.me/${customerWhatsappNumber}?text=${customerMessage}`;
-                window.open(whatsappURL, '_blank', 'noopener,noreferrer');
-
-                // 3. Refresh UI
-                updateAdminDashboard();
-                generatePickleballSlots();
-                showMessage('Confirmed!', `Booking Confirmed for ${booking.customerName}. WhatsApp message opened to notify customer.`, 'green');
-            }
-        }
-
-        function cancelBookingAdmin(slotId) {
-            const bookingIndex = bookings.findIndex(b => b.id === slotId);
-            
-            if (bookingIndex === -1) {
-                showMessage('Error', 'Booking not found!', 'red');
-                return;
-            }
-
-            const booking = bookings[bookingIndex];
-
-            // Note: Using window.confirm() here as it is only in the ADMIN-protected function
-            if (window.confirm(`Are you sure you want to CANCEL the ${booking.status.toUpperCase()} booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
-                
-                // Remove booking from array and update storage
-                bookings.splice(bookingIndex, 1);
-                saveBookings();
-                
-                // Optional: Notify customer about cancellation (Admin to Customer WhatsApp)
                 const cancellationMessage = `❌ *BOOKING CANCELLED* ❌%0A%0A` +
-                                            `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${booking.time} has been CANCELLED by the Admin.%0A%0A` +
+                                            `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${booking.time} has been CANCELLED by the Admin. %0A%0A` +
                                             `_The slot is now available to book. Please contact us if you need assistance._%0A%0A` +
                                             `Area 51 Sports Team`;
                 
@@ -668,11 +702,12 @@
                 const whatsappURL = `https://wa.me/${customerWhatsappNumber}?text=${cancellationMessage}`;
                 window.open(whatsappURL, '_blank', 'noopener,noreferrer');
 
-                // Refresh UI
-                updateAdminDashboard();
-                generatePickleballSlots();
-                showMessage('Cancelled!', `Booking cancelled successfully! The slot is now available (Green). WhatsApp message opened to notify customer ${booking.customerName}.`, 'red');
-            }
+                // UI update happens automatically via onSnapshot
+                showMessage('Cancelled!', `Booking cancelled successfully! The slot is now available (Green). WhatsApp message opened to notify customer.`, 'red');
+            } catch (error) {
+                console.error("Error cancelling booking:", error);
+                showMessage('Error', 'Failed to cancel booking. Please try again.', 'red');
+            } 
         }
 
         function exitAdmin() {
@@ -681,7 +716,6 @@
             showMessage('Exited Admin', 'You are back in the customer booking view.', 'blue');
         }
 
-        // NEW FUNCTION: Check URL for admin query parameter
         function checkUrlForAdminAccess() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('admin') === 'true') {
@@ -693,31 +727,23 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
-            
-            // Calculate max date (7 days from today)
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + 7);
             const maxDateString = maxDate.toISOString().split('T')[0];
             
-            // Set date constraints
             document.getElementById('pickleballDate').value = today;
             document.getElementById('pickleballDate').min = today;
             document.getElementById('pickleballDate').max = maxDateString;
             
-            // Attach hidden admin access listener
             document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
-
-            // Check if the admin URL parameter is present to trigger login
-            checkUrlForAdminAccess();
-
-            // Generate initial slots
-            generatePickleballSlots();
-            updateCartDisplay(); // Ensure cart state is fresh
-
-            // Add event listeners for date and court type changes
+            
             document.getElementById('pickleballDate').addEventListener('change', generatePickleballSlots);
             document.getElementById('courtType').addEventListener('change', generatePickleballSlots);
+            
+            initFirebase();
+            checkUrlForAdminAccess();
         });
     </script>
 </body>
 </html>
+
