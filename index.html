@@ -202,15 +202,16 @@
     </div>
     
     <script>
-        // 🛑🛑🛑 IMPORTANT: REPLACE THESE WITH YOUR FIREBASE PROJECT CONFIG 🛑🛑🛑
+        // 🟢🟢🟢 FIREBASE PROJECT CONFIG 🟢🟢🟢
+        // This configuration will now be used for saving and loading data.
         const firebaseConfig = {
-  apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
-  authDomain: "area51pickleball-6aa2e.firebaseapp.com",
-  projectId: "area51pickleball-6aa2e",
-  storageBucket: "area51pickleball-6aa2e.firebasestorage.app",
-  messagingSenderId: "832417408847",
-  appId: "1:832417408847:web:24102fc24f7e72aa28873a"
-};
+            apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
+            authDomain: "area51pickleball-6aa2e.firebaseapp.com",
+            projectId: "area51pickleball-6aa2e",
+            storageBucket: "area51pickleball-6aa2e.firebasestorage.app",
+            messagingSenderId: "832417408847",
+            appId: "1:832417408847:web:24102fc24f7e72aa28873a"
+        };
         
         // Initialize Firebase and Firestore
         firebase.initializeApp(firebaseConfig);
@@ -231,7 +232,7 @@
         const AREA_51_LOCATION = 'https://maps.app.goo.gl/5dwYtzEj3mLkPxSd7'; 
         const SLOT_PRICE = 500;
 
-        // --- FIREBASE DATA MANAGEMENT (UNCHANGED) ---
+        // --- FIREBASE DATA MANAGEMENT ---
 
         async function saveBookings() {
             try {
@@ -256,12 +257,13 @@
                     console.log("No initial data found in Firebase. Starting fresh.");
                 }
             } catch (error) {
+                // Display the error, which might be the reason slots aren't loading for the user
                 showMessage('Load Error', `Failed to load bookings: ${error.message}`, 'red');
                 console.error("Error reading document: ", error);
             }
         }
         
-        // --- UTILITIES (UPDATED TIME FORMATTING) ---
+        // --- UTILITIES ---
 
         function formatDateToDisplay(dateString) {
             if (!dateString) return 'Invalid Date';
@@ -286,18 +288,19 @@
             const startHour = hour24;
             const endHour = hour24 + 1;
 
-            const start12 = startHour % 12 || 12; // 0 (midnight) or 12 (noon) becomes 12
+            const start12 = startHour % 12 || 12; 
             const end12 = endHour % 12 || 12;
 
             // Determine period for the start of the slot
-            const period = startHour < 12 || startHour === 24 ? 'AM' : 'PM';
-            
-            // Handle AM/PM transition at noon (11-12)
+            const periodStart = startHour < 12 || startHour === 24 ? 'AM' : 'PM';
+            const periodEnd = endHour < 12 || endHour === 24 ? 'AM' : 'PM';
+
+            // Handle AM/PM transition at noon (11-12) or 12-1 PM
             if (startHour === 11) return `11 AM - 12 PM`;
-            // Handle 12 PM start (12-1)
             if (startHour === 12) return `12 - 1 PM`;
-            // All other times within the same period (e.g., 7-8 AM, 1-2 PM)
             
+            // For all others (e.g., 7-8 AM, 1-2 PM)
+            const period = startHour < 12 ? 'AM' : 'PM';
             return `${start12}-${end12} ${period}`;
         }
 
@@ -338,15 +341,15 @@
             
             // Time Bounds Logic Setup
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0]; // Current date string
+            const todayStr = now.toISOString().split('T')[0]; // Current date string (YYYY-MM-DD)
             const currentHour = now.getHours(); // Current hour (0-23)
 
             const isToday = selectedDateStr === todayStr;
 
             for (let hour = 7; hour <= 22; hour++) {
                 
-                // 🛑 TIME BOUNDARY CHECK: If today, skip slots where the start hour is less than the current hour
-                if (isToday && hour < currentHour) {
+                // 🛑 TIME BOUNDARY CHECK: If today, skip slots that are already passed or are the current hour.
+                if (isToday && hour <= currentHour) {
                     continue; 
                 }
 
@@ -385,6 +388,10 @@
                 }
 
                 container.appendChild(button);
+            }
+            
+            if (container.innerHTML === '') {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500 font-medium">No available slots for the selected date or all past slots have been hidden.</div>';
             }
         }
 
@@ -493,7 +500,7 @@
             checkoutBtn.disabled = false;
         }
         
-        // --- CHECKOUT & WHATSAPP FUNCTIONS (UNCHANGED) ---
+        // --- CHECKOUT & WHATSAPP FUNCTIONS ---
 
         function showUserDetailsForm() {
             if (pendingBookingDraft.length === 0) return;
@@ -533,6 +540,7 @@
             }));
 
             newConfirmedBookings.forEach(newBooking => {
+                // Ensure no duplicates by removing any existing slot with the same ID
                 bookings = bookings.filter(b => b.id !== newBooking.id); 
                 bookings.push(newBooking);
             });
@@ -560,7 +568,7 @@
             showMessage('Booking Confirmed!', `Your slots are officially CONFIRMED (Red status) and secured. WhatsApp chat opened to notify Admin.`, 'green');
         }
 
-        // --- ADMIN FUNCTIONS (Time Formatting Updated) ---
+        // --- ADMIN FUNCTIONS ---
         
         let adminClickCount = 0;
         let adminTimeout = null;
@@ -683,7 +691,7 @@
             }
         }
         
-        // --- INITIALIZATION (UNCHANGED) ---
+        // --- INITIALIZATION ---
 
         document.addEventListener('DOMContentLoaded', async function() {
             const today = new Date().toISOString().split('T')[0];
@@ -695,6 +703,7 @@
             document.getElementById('pickleballDate').min = today;
             document.getElementById('pickleballDate').max = maxDateString;
             
+            // 🛑 AWAITING loadBookings is crucial for fetching data before generating slots
             await loadBookings(); 
 
             document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
