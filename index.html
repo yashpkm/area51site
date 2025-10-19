@@ -34,7 +34,6 @@
         .slot-available-selected {
             background: linear-gradient(135deg, #0d9488, #0f766e);
         }
-        /* NOTE: .slot-pending style is removed as it's no longer used */
     </style>
 </head>
 <body class="bg-gray-50 min-h-full">
@@ -203,15 +202,15 @@
     </div>
     
     <script>
-        // 🛑🛑🛑 IMPORTANT: REPLACE THESE WITH YOUR FIREBASE PROJECT CONFIG 🛑🛑🛑
+        // 🟢🟢🟢 FIREBASE PROJECT CONFIG 🟢🟢🟢
         const firebaseConfig = {
-  apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
-  authDomain: "area51pickleball-6aa2e.firebaseapp.com",
-  projectId: "area51pickleball-6aa2e",
-  storageBucket: "area51pickleball-6aa2e.firebasestorage.app",
-  messagingSenderId: "832417408847",
-  appId: "1:832417408847:web:24102fc24f7e72aa28873a"
-};
+            apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
+            authDomain: "area51pickleball-6aa2e.firebaseapp.com",
+            projectId: "area51pickleball-6aa2e",
+            storageBucket: "area51pickleball-6aa2e.firebasestorage.app",
+            messagingSenderId: "832417408847",
+            appId: "1:832417408847:web:24102fc24f7e72aa28873a"
+        };
         
         // Initialize Firebase and Firestore
         firebase.initializeApp(firebaseConfig);
@@ -224,9 +223,7 @@
         
         let currentUser = { phone: '9999999999', id: userId }; 
         
-        // This array will be loaded from/saved to Firebase
         let bookings = []; 
-        
         let selectedSlots = []; 
         let pendingBookingDraft = []; 
         
@@ -238,7 +235,6 @@
 
         async function saveBookings() {
             try {
-                // Save the entire array under a single document ID ('data')
                 await db.collection("area51Bookings").doc("data").set({ 
                     bookingsArray: bookings,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
@@ -266,6 +262,7 @@
         }
         
         // --- UTILITIES ---
+
         function formatDateToDisplay(dateString) {
             if (!dateString) return 'Invalid Date';
             try {
@@ -280,13 +277,38 @@
             }
         }
 
+        /**
+         * Converts 24-hour time integer (7-22) into a user-friendly range string (e.g., "7-8 AM", "12-1 PM").
+         * @param {number} hour24 The starting hour (e.g., 7 for 7:00-8:00).
+         * @returns {string} The formatted time range.
+         */
+        function formatTimeRange(hour24) {
+            const startHour = hour24;
+            const endHour = hour24 + 1;
+
+            const start12 = startHour % 12 || 12; 
+            const end12 = endHour % 12 || 12;
+
+            // Determine period for the start of the slot
+            const periodStart = startHour < 12 || startHour === 24 ? 'AM' : 'PM';
+            const periodEnd = endHour < 12 || endHour === 24 ? 'AM' : 'PM';
+
+            // If the period changes (e.g., 11-12, or 12-1) show both periods
+            if (periodStart !== periodEnd || startHour === 12) {
+                return `${start12} ${periodStart} - ${end12} ${periodEnd}`;
+            }
+            
+            // Otherwise, just show the range and the period once (e.g., 7-8 AM)
+            return `${start12}-${end12} ${periodStart}`;
+        }
+
+
         function contactAdmin() {
             const message = "Hi, I have a general question about court bookings at Area 51 Pickleball.";
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
         }
 
-        // Custom message box utility
         function showMessage(title, message, type = 'blue') {
             const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-500' : 'bg-blue-500';
             const html = `
@@ -302,11 +324,11 @@
             }, 5000);
         }
 
-        // --- SLOT GENERATION & INTERACTION (Simplified) ---
+        // --- SLOT GENERATION & INTERACTION (Time Bounds Implemented) ---
 
         function generatePickleballSlots() {
             const container = document.getElementById('pickleballSlots');
-            const date = document.getElementById('pickleballDate').value;
+            const selectedDateStr = document.getElementById('pickleballDate').value; // e.g., "2025-10-19"
             const courtType = document.getElementById('courtType').value;
             
             // Remove loading indicator once data is loaded
@@ -315,11 +337,29 @@
 
             container.innerHTML = '';
             
+            // Time Bounds Logic Setup
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0]; // Current date string
+            const currentHour = now.getHours(); // Current hour (0-23)
+
+            const isToday = selectedDateStr === todayStr;
+
             for (let hour = 7; hour <= 22; hour++) {
-                const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
-                const slotId = `pickleball-${courtType}-${date}-${timeSlot}`;
                 
-                // Only check for confirmed bookings
+                // 🛑 TIME BOUNDARY CHECK: If today, skip slots where the start hour is less than the current hour
+                // Note: currentHour is 18 (6PM) now, so it hides 7AM-6PM slots
+                if (isToday && hour <= currentHour) { // Use <= to hide the current hour slot as well
+                    continue; 
+                }
+
+                // IMPORTANT: The slotId must use 24h format for consistent storage in Firebase
+                const timeSlot24h = `${hour.toString().padStart(2, '0')}:00`;
+                const slotId = `pickleball-${courtType}-${selectedDateStr}-${timeSlot24h}`;
+                
+                // Display text uses the new range format
+                const timeSlotDisplay = formatTimeRange(hour);
+                
+                // Check current status from the main bookings array
                 const currentBooking = bookings.find(b => b.id === slotId);
                 const isBookedConfirmed = currentBooking && currentBooking.status === 'confirmed';
                 
@@ -327,7 +367,7 @@
                 const isSelectedByCurrentUser = selectedSlots.includes(slotId);
                 
                 const button = document.createElement('button');
-                button.textContent = timeSlot;
+                button.textContent = timeSlotDisplay; // Use the formatted range text
                 
                 // Slot is blocked ONLY if confirmed (Red)
                 button.disabled = isBookedConfirmed; 
@@ -337,11 +377,10 @@
                 if (isBookedConfirmed) {
                     buttonClass = 'slot-booked';
                 } else if (isSelectedByCurrentUser) {
-                    // Only applies to truly available slots the user has clicked
                     buttonClass = 'slot-available-selected';
                 }
                 
-                button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors text-white shadow-md ${buttonClass} ${button.disabled ? 'cursor-not-allowed opacity-80' : 'hover:opacity-90'}`;
+                button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors text-white shadow-md ${button.disabled ? 'cursor-not-allowed opacity-80' : 'hover:opacity-90'}`;
 
                 if (!button.disabled) {
                     button.onclick = () => selectSlot(slotId);
@@ -380,14 +419,15 @@
             const courtType = document.getElementById('courtType').value;
             
             selectedSlots.forEach(slotId => {
-                const timeSlot = slotId.split('-').pop();
+                // The time slot is stored in 24h format in the slotId (e.g., '07:00')
+                const timeSlot24h = slotId.split('-').pop(); 
                 
                 const bookingDraft = {
                     id: slotId,
                     sport: 'pickleball',
                     venue: courtType,
                     date: date,
-                    time: timeSlot,
+                    time: timeSlot24h, // Use 24h time here
                     price: SLOT_PRICE,
                     user: currentUser.id,
                     customerName: null,
@@ -423,7 +463,12 @@
                 return;
             }
             
-            container.innerHTML = pendingBookingDraft.map((item, index) => `
+            container.innerHTML = pendingBookingDraft.map((item, index) => {
+                // Get the starting hour from the 24h time string (e.g., '07:00' -> 7)
+                const startHour = parseInt(item.time.split(':')[0]);
+                const timeDisplay = formatTimeRange(startHour); // Format for display
+
+                return `
                 <div class="flex justify-between items-center p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <div class="flex-1">
                         <div class="flex items-center space-x-3 mb-1">
@@ -432,7 +477,7 @@
                         </div>
                         <div class="space-y-0.5 text-gray-700">
                             <span class="text-sm font-semibold">📅 ${formatDateToDisplay(item.date)}</span>
-                            <span class="text-sm font-semibold ml-3">⏰ ${item.time}</span>
+                            <span class="text-sm font-semibold ml-3">⏰ ${timeDisplay}</span>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
@@ -442,14 +487,15 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
             
             const total = pendingBookingDraft.reduce((sum, item) => sum + item.price, 0);
             totalElement.textContent = `₹${total}`;
             checkoutBtn.disabled = false;
         }
         
-        // --- CHECKOUT & WHATSAPP FUNCTIONS (Changed to direct confirm) ---
+        // --- CHECKOUT & WHATSAPP FUNCTIONS ---
 
         function showUserDetailsForm() {
             if (pendingBookingDraft.length === 0) return;
@@ -473,25 +519,28 @@
             }
             
             const total = pendingBookingDraft.reduce((sum, item) => sum + item.price, 0);
-            const bookingDetailsText = pendingBookingDraft.map(item => 
-                `*${item.venue}* Court on *${formatDateToDisplay(item.date)}* at *${item.time}* (₹${item.price})`
-            ).join('%0A- '); 
             
+            const bookingDetailsText = pendingBookingDraft.map(item => {
+                const startHour = parseInt(item.time.split(':')[0]);
+                const timeDisplay = formatTimeRange(startHour);
+                return `*${item.venue}* Court on *${formatDateToDisplay(item.date)}* from *${timeDisplay}* (₹${item.price})`
+            }).join('%0A- '); 
+
             // 1. Convert Draft to CONFIRMED Bookings (Red Status) and SAVE TO FIREBASE
             const newConfirmedBookings = pendingBookingDraft.map(draft => ({
                 ...draft, 
                 customerName: name,
                 customerWhatsapp: whatsapp,
-                status: 'confirmed' // 🔴 DIRECT CONFIRMATION HERE
+                status: 'confirmed' 
             }));
 
-            // Add new bookings to the global array
             newConfirmedBookings.forEach(newBooking => {
+                // Remove old slots if user was quick enough to select a slot that just got booked by another user
                 bookings = bookings.filter(b => b.id !== newBooking.id); 
                 bookings.push(newBooking);
             });
             
-            await saveBookings(); // SAVE to Firestore
+            await saveBookings(); 
 
             // 2. Open WhatsApp link (Customer to Admin) - NOW A CONFIRMATION MESSAGE
             const whatsappMessage = 
@@ -509,12 +558,12 @@
             pendingBookingDraft = []; 
             closeUserDetailsModal();
             updateCartDisplay();
-            generatePickleballSlots(); // Refresh slots to show confirmed (Red) status
+            generatePickleballSlots(); 
 
             showMessage('Booking Confirmed!', `Your slots are officially CONFIRMED (Red status) and secured. WhatsApp chat opened to notify Admin.`, 'green');
         }
 
-        // --- ADMIN FUNCTIONS (Simplified) ---
+        // --- ADMIN FUNCTIONS ---
         
         let adminClickCount = 0;
         let adminTimeout = null;
@@ -552,12 +601,10 @@
         }
 
         function updateAdminDashboard() {
-            // Only confirmed bookings are relevant now
             const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
             const confirmedCount = confirmedBookings.length;
             const totalRevenue = confirmedBookings.reduce((sum, b) => sum + b.price, 0);
             
-            // document.getElementById('pendingBookingsCount').textContent = 0; // Removed element from display
             document.getElementById('confirmedBookingsCount').textContent = confirmedCount;
             document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
             
@@ -567,13 +614,17 @@
             if (allConfirmedBookings.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No confirmed bookings yet</td></tr>';
             } else {
-                tableBody.innerHTML = allConfirmedBookings.map((booking, index) => `
+                tableBody.innerHTML = allConfirmedBookings.map((booking, index) => {
+                    const startHour = parseInt(booking.time.split(':')[0]);
+                    const timeDisplay = formatTimeRange(startHour);
+                    
+                    return `
                     <tr class="transition duration-100 bg-red-50 hover:bg-red-100">
                         <td class="border-b px-3 py-3">
                             <span class="font-semibold">${booking.customerName || 'N/A'}</span>
                             <div class="text-xs text-gray-500">+91${booking.customerWhatsapp || 'N/A'}</div>
                         </td>
-                        <td class="border-b px-3 py-3">${formatDateToDisplay(booking.date)} @ ${booking.time}</td>
+                        <td class="border-b px-3 py-3">${formatDateToDisplay(booking.date)} @ ${timeDisplay}</td>
                         <td class="border-b px-3 py-3 capitalize">${booking.venue}</td>
                         <td class="border-b px-3 py-3 font-bold">₹${booking.price}</td>
                         <td class="border-b px-3 py-3">
@@ -587,11 +638,10 @@
                             </button>
                         </td>
                     </tr>
-                `).join('');
+                    `
+                }).join('');
             }
         }
-
-        // Removed confirmBookingAdmin as it's no longer necessary
 
         async function cancelBookingAdmin(slotId) {
             const bookingIndex = bookings.findIndex(b => b.id === slotId);
@@ -603,15 +653,13 @@
 
             const booking = bookings[bookingIndex];
 
-            if (window.confirm(`Are you sure you want to CANCEL the confirmed booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
+            if (window.confirm(`Are you sure you want to CANCEL the confirmed booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${formatTimeRange(parseInt(booking.time.split(':')[0]))}?`)) {
                 
-                // Remove booking from array and SAVE TO FIREBASE
                 bookings.splice(bookingIndex, 1);
                 await saveBookings(); 
                 
-                // Optional: Notify customer about cancellation (Admin to Customer WhatsApp)
                 const cancellationMessage = `❌ *BOOKING CANCELLED* ❌%0A%0A` +
-                                            `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${booking.time} has been CANCELLED by the Admin.%0A%0A` +
+                                            `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${formatTimeRange(parseInt(booking.time.split(':')[0]))} has been CANCELLED by the Admin.%0A%0A` +
                                             `_The slot is now available to book. Please contact us if you need assistance._%0A%0A` +
                                             `Area 51 Sports Team`;
                 
@@ -638,9 +686,10 @@
             }
         }
         
-        // --- INITIALIZATION (Updated to use async function) ---
+        // --- INITIALIZATION ---
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // NOTE: Current time is 6:58 PM (18:58) on October 19, 2025.
             const today = new Date().toISOString().split('T')[0];
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + 7);
@@ -650,10 +699,8 @@
             document.getElementById('pickleballDate').min = today;
             document.getElementById('pickleballDate').max = maxDateString;
             
-            // 🟢 STEP 1: Load data from Firebase (Wait for this to complete)
             await loadBookings(); 
 
-            // STEP 2: Attach listeners and initialize UI based on loaded data
             document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
             checkUrlForAdminAccess();
 
