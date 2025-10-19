@@ -6,6 +6,10 @@
     <title>Area 51 - Pickleball Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    
     <style>
         body {
             box-sizing: border-box;
@@ -22,13 +26,16 @@
         .slot-available {
             background: linear-gradient(135deg, #10b981, #059669);
         }
-        /* Confirmed/Booked: Red */
+        /* Confirmed/Booked: Red (as requested) */
         .slot-booked {
             background: linear-gradient(135deg, #ef4444, #dc2626);
         }
-        /* REMOVED .slot-pending (Yellow) */
-        
-        /* Selected (visual only, before adding to cart) - Using a dark blue/teal for distinction */
+        /* Pending/In Cart: Yellow (New state) */
+        .slot-pending {
+            background: linear-gradient(135deg, #facc15, #eab308); /* Yellow gradient */
+            color: #1f2937; /* Dark text for contrast */
+        }
+        /* Selected (visual only, before adding to cart) */
         .slot-available-selected {
             background: linear-gradient(135deg, #0d9488, #0f766e);
         }
@@ -85,14 +92,18 @@
                         <span class="text-xs text-gray-500 font-normal">| Tap to Select</span>
                     </h4>
                     <div id="pickleballSlots" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3">
+                        <div class="col-span-full text-center py-8 text-gray-500 font-medium" id="loadingIndicator">
+                            Loading bookings from server...
                         </div>
+                    </div>
                 </div>
 
                 <div class="bg-blue-50 p-4 rounded-lg text-sm mb-6">
                     <p class="font-semibold text-blue-800 mb-1">Status Key:</p>
                     <div class="flex flex-wrap gap-4 text-xs">
                         <span class="px-2 py-1 rounded-full bg-green-500 text-white font-medium">Available</span>
-                        <span class="px-2 py-1 rounded-full bg-red-600 text-white font-medium">Booked/Confirmed</span>
+                        <span class="px-2 py-1 rounded-full bg-yellow-500 text-gray-800 font-medium">Pending (Admin Approval)</span>
+                        <span class="px-2 py-1 rounded-full bg-red-600 text-white font-medium">Confirmed/Booked</span>
                     </div>
                 </div>
                 
@@ -120,11 +131,15 @@
 
         <div id="adminSection" class="hidden fade-in">
             <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-                <h3 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Admin Dashboard (Pre-Confirmed Bookings)</h3>
+                <h3 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Admin Dashboard</h3>
                 
                 <div class="grid sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                    <div class="bg-red-50 p-4 rounded-lg shadow-inner col-span-2"> 
-                        <h4 class="font-semibold text-red-800 text-sm">Total Confirmed Bookings (Instant)</h4>
+                    <div class="bg-yellow-50 p-4 rounded-lg shadow-inner">
+                        <h4 class="font-semibold text-yellow-800 text-sm">Pending Bookings</h4>
+                        <p class="text-xl sm:text-2xl font-bold text-yellow-600" id="pendingBookingsCount">0</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg shadow-inner">
+                        <h4 class="font-semibold text-red-800 text-sm">Total Confirmed</h4>
                         <p class="text-xl sm:text-2xl font-bold text-red-600" id="confirmedBookingsCount">0</p>
                     </div>
                     <div class="bg-green-50 p-4 rounded-lg shadow-inner">
@@ -134,7 +149,7 @@
                 </div>
                 
                 <div class="mb-6">
-                    <h4 class="text-lg sm:text-xl font-semibold mb-3">All Bookings</h4>
+                    <h4 class="text-lg sm:text-xl font-semibold mb-3">All Bookings (Pending/Confirmed)</h4>
                     <div class="overflow-x-auto border rounded-lg">
                         <table class="w-full border-collapse text-sm">
                             <thead>
@@ -166,7 +181,7 @@
     <div id="userDetailsModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50">
         <div class="bg-white rounded-xl p-6 sm:p-8 max-w-lg mx-4 text-center fade-in shadow-2xl">
             <h2 class="text-2xl font-bold text-purple-600 mb-4">Complete Your Booking</h2>
-            <p class="text-gray-600 mb-6">Please provide your details to secure your instantly confirmed slot.</p>
+            <p class="text-gray-600 mb-6">Please provide your details so that we can confirm your slot and contact you.</p>
             
             <div class="space-y-4 text-left">
                 <div>
@@ -190,41 +205,83 @@
                     Cancel
                 </button>
                 <button onclick="submitUserDetails()" id="submitDetailsBtn" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition disabled:bg-gray-400">
-                    Confirm & Secure Slot
+                    Confirm & Notify Admin
                 </button>
             </div>
         </div>
     </div>
     
     <script>
+        // 🛑🛑🛑 IMPORTANT: REPLACE THESE WITH YOUR FIREBASE PROJECT CONFIG 🛑🛑🛑
+        const firebaseConfig = {
+  apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
+  authDomain: "area51pickleball-6aa2e.firebaseapp.com",
+  projectId: "area51pickleball-6aa2e",
+  storageBucket: "area51pickleball-6aa2e.firebasestorage.app",
+  messagingSenderId: "832417408847",
+  appId: "1:832417408847:web:24102fc24f7e72aa28873a"
+};
+        
+        // Initialize Firebase and Firestore
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        // -----------------------------------------------------------------------
+
         // --- GLOBAL STATE & CONFIGURATION ---
+        // Using localStorage only for a consistent user ID, NOT for bookings
         const userId = 'GUEST_USER_' + (localStorage.getItem('area51UserId') || Math.random().toString(36).substring(2, 9));
         localStorage.setItem('area51UserId', userId); 
         
         let currentUser = { phone: '9999999999', id: userId }; 
         
-        // This array holds the currently selected slots on the client-side *before* adding to cart
-        let selectedSlots = []; 
+        // This array will be loaded from/saved to Firebase
+        let bookings = []; 
         
-        // This array holds the list of slots that the user intends to book (becomes 'confirmed' bookings)
+        let selectedSlots = []; 
         let pendingBookingDraft = []; 
         
-        // Main data store for all bookings, shared across all users (simulated multi-user data)
-        let bookings = JSON.parse(localStorage.getItem('area51Bookings') || '[]');
-        
-        // UPDATED: New Admin WhatsApp Number (+91 7972409893)
         const ADMIN_WHATSAPP = '917972409893';
-        // NEW: Area 51 Location Link
         const AREA_51_LOCATION = 'https://maps.app.goo.gl/5dwYtzEj3mLkPxSd7'; 
-        
         const SLOT_PRICE = 500;
 
-        // --- UTILITIES ---
+        // --- FIREBASE DATA MANAGEMENT ---
 
-        function saveBookings() {
-            localStorage.setItem('area51Bookings', JSON.stringify(bookings));
+        /**
+         * 🟢 Replaces localStorage.setItem. Saves the current bookings array to Firestore.
+         */
+        async function saveBookings() {
+            try {
+                // Save the entire array under a single document ID ('data')
+                await db.collection("area51Bookings").doc("data").set({ 
+                    bookingsArray: bookings,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("Bookings saved to Firebase!");
+            } catch (error) {
+                showMessage('Save Error', `Failed to save bookings: ${error.message}`, 'red');
+                console.error("Error writing document: ", error);
+            }
         }
 
+        /**
+         * 🟢 Replaces localStorage.getItem. Loads the bookings array from Firestore.
+         */
+        async function loadBookings() {
+            try {
+                const doc = await db.collection("area51Bookings").doc("data").get();
+                if (doc.exists && doc.data().bookingsArray) {
+                    bookings = doc.data().bookingsArray;
+                    console.log("Bookings loaded from Firebase:", bookings.length);
+                } else {
+                    console.log("No initial data found in Firebase. Starting fresh.");
+                }
+            } catch (error) {
+                showMessage('Load Error', `Failed to load bookings: ${error.message}`, 'red');
+                console.error("Error reading document: ", error);
+            }
+        }
+        
+        // --- UTILITIES (Same as before) ---
         function formatDateToDisplay(dateString) {
             if (!dateString) return 'Invalid Date';
             try {
@@ -239,54 +296,79 @@
             }
         }
 
-        // NEW: Function for the "WhatsApp Admin" button
         function contactAdmin() {
             const message = "Hi, I have a general question about court bookings at Area 51 Pickleball.";
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
         }
 
+        // Custom message box utility
+        function showMessage(title, message, type = 'blue') {
+            const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-500' : 'bg-blue-500';
+            const html = `
+                <div id="custom-message-box" class="fixed top-0 left-1/2 -translate-x-1/2 mt-4 z-[100] p-4 rounded-lg shadow-xl text-white ${bgColor} fade-in" style="min-width: 300px;">
+                    <h4 class="font-bold text-lg">${title}</h4>
+                    <p class="text-sm">${message}</p>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            setTimeout(() => {
+                const box = document.getElementById('custom-message-box');
+                if (box) box.remove();
+            }, 5000);
+        }
 
-        // --- SLOT GENERATION & INTERACTION ---
+        // --- SLOT GENERATION & INTERACTION (Minor update to remove loading) ---
 
         function generatePickleballSlots() {
             const container = document.getElementById('pickleballSlots');
             const date = document.getElementById('pickleballDate').value;
             const courtType = document.getElementById('courtType').value;
             
+            // Remove loading indicator once data is loaded
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) loadingIndicator.remove();
+
             container.innerHTML = '';
             
             for (let hour = 7; hour <= 22; hour++) {
                 const timeSlot = `${hour.toString().padStart(2, '0')}:00`;
                 const slotId = `pickleball-${courtType}-${date}-${timeSlot}`;
                 
-                // Check current status from the main bookings array
+                // Check current status from the main bookings array (now Firebase-synced)
                 const currentBooking = bookings.find(b => b.id === slotId);
-                // MODIFIED: Only check for 'confirmed' status. No 'pending' status check here.
                 const isBookedConfirmed = currentBooking && currentBooking.status === 'confirmed';
+                const isBookedPending = currentBooking && currentBooking.status === 'pending';
                 
                 // Check if currently selected by this user (for visual cue before adding to cart)
                 const isSelectedByCurrentUser = selectedSlots.includes(slotId);
                 
                 const button = document.createElement('button');
                 button.textContent = timeSlot;
-                // MODIFIED: Only disable if confirmed.
-                button.disabled = isBookedConfirmed; 
+                button.disabled = isBookedConfirmed || (isBookedPending && currentBooking.user !== currentUser.id); 
                 
                 let buttonClass = 'slot-available';
 
                 if (isBookedConfirmed) {
                     buttonClass = 'slot-booked';
+                } else if (isBookedPending) {
+                    buttonClass = 'slot-pending';
+                    // Allow the user who placed the pending booking to interact (e.g. view cart)
+                    if (currentBooking.user === currentUser.id) {
+                         button.disabled = false;
+                    }
                 } else if (isSelectedByCurrentUser) {
-                    // Only applies to truly available slots the user has clicked (Dark Teal)
+                    // Only applies to truly available slots the user has clicked
                     buttonClass = 'slot-available-selected';
                 }
                 
                 button.className = `px-3 py-2 rounded-lg font-medium text-sm transition-colors text-white shadow-md ${buttonClass} ${button.disabled ? 'cursor-not-allowed opacity-80' : 'hover:opacity-90'}`;
 
-                if (!button.disabled) {
+                if (!button.disabled && !isBookedPending && !isBookedConfirmed) {
                     button.onclick = () => selectSlot(slotId);
-                } 
+                } else if (isBookedPending && currentBooking.user === currentUser.id) {
+                    button.onclick = () => showMessage('Pending Slot', 'This slot is held for you. Complete the booking in your cart!', 'purple');
+                }
 
                 container.appendChild(button);
             }
@@ -296,10 +378,8 @@
             const index = selectedSlots.indexOf(slotId);
             
             if (index > -1) {
-                // Slot is already selected, unselect it
                 selectedSlots.splice(index, 1);
             } else {
-                // Slot is not selected, select it (max 2 slots per cart session)
                 if (selectedSlots.length >= 2) {
                     showMessage('Limit Reached', 'You can only select a maximum of 2 slots per transaction.', 'red');
                     return;
@@ -308,7 +388,6 @@
             }
             
             updateCartDisplay();
-            // Re-render to update color
             generatePickleballSlots();
         }
 
@@ -318,21 +397,13 @@
                 return;
             }
             
-            // Move the current selection into the draft to simulate a "cart"
             pendingBookingDraft = [];
             
             const date = document.getElementById('pickleballDate').value;
             const courtType = document.getElementById('courtType').value;
             
             selectedSlots.forEach(slotId => {
-                const timeSlot = slotId.split('-').pop(); // Get time from ID
-                
-                // IMPORTANT: Check for clash one last time, in case another user booked it.
-                const clashBooking = bookings.find(b => b.id === slotId && b.status === 'confirmed');
-                if (clashBooking) {
-                    showMessage('Clash Detected', `The slot ${timeSlot} was just confirmed by another user and has been removed from your cart.`, 'red');
-                    return; // Skip this slot
-                }
+                const timeSlot = slotId.split('-').pop();
                 
                 const bookingDraft = {
                     id: slotId,
@@ -345,25 +416,21 @@
                     customerName: null,
                     customerWhatsapp: null,
                     bookingTime: new Date().toISOString(),
-                    status: 'draft' // A temporary status for the draft cart
+                    status: 'pending-draft'
                 };
                 pendingBookingDraft.push(bookingDraft);
             });
             
-            // Clear client-side selection
             selectedSlots = [];
 
             updateCartDisplay();
-            // Using a simple message box instead of alert() for better UX
             showMessage('✅ Slot(s) Added to Cart', `${pendingBookingDraft.length} slot(s) moved to 'Your Cart'. Click 'Confirm Booking & Enter Details' to proceed.`, 'green');
-            generatePickleballSlots(); // Refresh to remove the dark teal selection color
+            generatePickleballSlots();
         }
 
         function removeFromCart(index) {
-            // Remove from the draft
             pendingBookingDraft.splice(index, 1);
             updateCartDisplay();
-            // Re-render to allow selection again
             generatePickleballSlots();
         }
 
@@ -409,7 +476,6 @@
 
         function showUserDetailsForm() {
             if (pendingBookingDraft.length === 0) return;
-            // Show modal
             document.getElementById('userDetailsModal').classList.remove('hidden');
             document.getElementById('userDetailsModal').classList.add('flex');
             document.getElementById('customerName').focus();
@@ -420,7 +486,7 @@
             document.getElementById('userDetailsModal').classList.remove('flex');
         }
 
-        function submitUserDetails() {
+        async function submitUserDetails() {
             const name = document.getElementById('customerName').value.trim();
             const whatsapp = document.getElementById('customerWhatsapp').value.trim();
             
@@ -432,69 +498,53 @@
             const total = pendingBookingDraft.reduce((sum, item) => sum + item.price, 0);
             const bookingDetailsText = pendingBookingDraft.map(item => 
                 `*${item.venue}* Court on *${formatDateToDisplay(item.date)}* at *${item.time}* (₹${item.price})`
-            ).join('%0A- '); // %0A is newline
+            ).join('%0A- '); 
             
-            // 1. Convert Draft to INSTANTLY CONFIRMED Bookings (Red Status) and Save
-            const newConfirmedBookings = pendingBookingDraft.map(draft => ({
+            // 1. Convert Draft to PENDING Bookings (Yellow Status) and SAVE TO FIREBASE
+            const newPendingBookings = pendingBookingDraft.map(draft => ({
                 ...draft, 
                 customerName: name,
                 customerWhatsapp: whatsapp,
-                status: 'confirmed' // MODIFIED: Instantly set to 'confirmed'
+                status: 'pending' // Officially pending now, visible to all as yellow
             }));
 
-            // Save the newly confirmed bookings to the global bookings array
-            newConfirmedBookings.forEach(newBooking => {
-                // Remove existing slot if it was somehow in the global bookings with a bad status
+            // Add new bookings to the global array (which will be saved to Firebase)
+            newPendingBookings.forEach(newBooking => {
                 bookings = bookings.filter(b => b.id !== newBooking.id); 
                 bookings.push(newBooking);
             });
             
-            saveBookings();
-            
-            // 2. Open WhatsApp link (Admin Notification)
+            await saveBookings(); // 🟢 SAVE to Firestore
+
+            // 2. Open WhatsApp link (Customer to Admin)
             const whatsappMessage = 
-                `*NEW INSTANTLY CONFIRMED BOOKING - ADMIN NOTIFICATION*%0A%0A` +
+                `*NEW BOOKING REQUEST - PLEASE CONFIRM*%0A%0A` +
                 `👤 *Customer:* ${name}%0A` +
                 `📞 *WhatsApp:* +91${whatsapp}%0A%0A` +
                 `🎾 *Booking Details (Total ₹${total}):*%0A` +
                 `- ${bookingDetailsText}%0A%0A` +
-                `_This slot has been automatically marked as CONFIRMED (RED) on the booking grid._`;
+                `_Kindly confirm this booking in the Admin Dashboard at your earliest convenience._`;
 
             const whatsappURL = `https://wa.me/${ADMIN_WHATSAPP}?text=${whatsappMessage}`;
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
 
             // 3. Cleanup UI
-            pendingBookingDraft = []; // Clear local cart
+            pendingBookingDraft = []; 
             closeUserDetailsModal();
             updateCartDisplay();
-            generatePickleballSlots(); // Refresh slots to show Red status
+            generatePickleballSlots(); // Refresh slots to show yellow status (synced from Firebase)
 
-            showMessage('Booking Confirmed!', 'Your slot is secured (Red). Admin has been notified via WhatsApp.', 'red');
+            showMessage('Booking Request Sent!', 'The slots are temporarily held (Yellow). The Admin must confirm them to secure your booking. WhatsApp chat opened.', 'purple');
         }
 
-        // --- ADMIN FUNCTIONS ---
+        // --- ADMIN FUNCTIONS (Updated to call saveBookings) ---
         
-        // Custom message box utility (since alert() is forbidden)
-        function showMessage(title, message, type = 'blue') {
-            const bgColor = type === 'red' ? 'bg-red-500' : type === 'green' ? 'bg-green-500' : type === 'purple' ? 'bg-purple-500' : 'bg-blue-500';
-            const html = `
-                <div id="custom-message-box" class="fixed top-0 left-1/2 -translate-x-1/2 mt-4 z-[100] p-4 rounded-lg shadow-xl text-white ${bgColor} fade-in" style="min-width: 300px;">
-                    <h4 class="font-bold text-lg">${title}</h4>
-                    <p class="text-sm">${message}</p>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', html);
-            setTimeout(() => {
-                const box = document.getElementById('custom-message-box');
-                if (box) box.remove();
-            }, 5000);
-        }
-
-        // --- HIDDEN ADMIN ACCESS LOGIC (5-click trigger) ---
+        // ... (checkAdminAccess, showAdminLogin functions are unchanged) ...
+        
         let adminClickCount = 0;
         let adminTimeout = null;
         const ADMIN_ACCESS_CLICKS = 5;
-        const CLICK_TIMEOUT_MS = 1500; // 1.5 seconds
+        const CLICK_TIMEOUT_MS = 1500; 
 
         function checkAdminAccess() {
             adminClickCount++;
@@ -503,13 +553,12 @@
                 clearTimeout(adminTimeout);
             }
 
-            // Reset counter after timeout
             adminTimeout = setTimeout(() => {
                 adminClickCount = 0;
             }, CLICK_TIMEOUT_MS);
 
             if (adminClickCount >= ADMIN_ACCESS_CLICKS) {
-                adminClickCount = 0; // Reset immediately to prevent multiple popups
+                adminClickCount = 0; 
                 clearTimeout(adminTimeout);
                 showAdminLogin();
             }
@@ -528,13 +577,12 @@
         }
 
         function updateAdminDashboard() {
-            // Recalculate stats based on the latest bookings array
-            // MODIFIED: Only count 'confirmed' bookings
+            const pendingCount = bookings.filter(b => b.status === 'pending').length;
             const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
             const confirmedCount = confirmedBookings.length;
             const totalRevenue = confirmedBookings.reduce((sum, b) => sum + b.price, 0);
             
-            // document.getElementById('pendingBookingsCount').textContent = 0; // Removed element
+            document.getElementById('pendingBookingsCount').textContent = pendingCount;
             document.getElementById('confirmedBookingsCount').textContent = confirmedCount;
             document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
             
@@ -545,7 +593,7 @@
                 tableBody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No bookings yet</td></tr>';
             } else {
                 tableBody.innerHTML = allBookings.map((booking, index) => `
-                    <tr class="transition duration-100 ${booking.status === 'confirmed' ? 'bg-red-50 hover:bg-red-100' : 'bg-gray-100 hover:bg-gray-200'}">
+                    <tr class="transition duration-100 ${booking.status === 'pending' ? 'bg-yellow-100 hover:bg-yellow-200' : 'bg-red-50 hover:bg-red-100'}">
                         <td class="border-b px-3 py-3">
                             <span class="font-semibold">${booking.customerName || 'N/A'}</span>
                             <div class="text-xs text-gray-500">+91${booking.customerWhatsapp || 'N/A'}</div>
@@ -554,25 +602,26 @@
                         <td class="border-b px-3 py-3 capitalize">${booking.venue}</td>
                         <td class="border-b px-3 py-3 font-bold">₹${booking.price}</td>
                         <td class="border-b px-3 py-3">
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${booking.status === 'confirmed' ? 'bg-red-200 text-red-800' : 'bg-gray-400 text-white'}">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${booking.status === 'confirmed' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'}">
                                 ${booking.status.toUpperCase()}
                             </span>
                         </td>
                         <td class="border-b px-3 py-3 space-y-1">
-                            ${booking.status === 'confirmed' ? `
-                                <button onclick="cancelBookingAdmin('${booking.id}')" class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
-                                    Cancel
-                                </button>
-                            ` : `<button class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs font-medium cursor-not-allowed">Cancelled</button>`}
+                            ${booking.status === 'pending' ? `
+                                <button onclick="confirmBookingAdmin('${booking.id}')" class="w-full bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
+                                    Confirm & Notify
+                                </button>` : `<button class="w-full bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs font-medium cursor-not-allowed">Confirmed</button>`
+                            }
+                            <button onclick="cancelBookingAdmin('${booking.id}')" class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium transition shadow-sm">
+                                Cancel
+                            </button>
                         </td>
                     </tr>
                 `).join('');
             }
         }
 
-        // REMOVED: confirmBookingAdmin function as it's no longer needed.
-
-        function cancelBookingAdmin(slotId) {
+        async function confirmBookingAdmin(slotId) {
             const bookingIndex = bookings.findIndex(b => b.id === slotId);
             
             if (bookingIndex === -1) {
@@ -582,14 +631,56 @@
 
             const booking = bookings[bookingIndex];
 
-            // Note: Using window.confirm() here as it is only in the ADMIN-protected function
-            if (window.confirm(`Are you sure you want to CANCEL the booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}? This will notify the customer.`)) {
+            if (booking.status === 'confirmed') {
+                showMessage('Already Confirmed', 'This booking is already confirmed!', 'blue');
+                return;
+            }
+            
+            if (window.confirm(`Confirm booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
                 
-                // Remove booking from array and update storage
+                // 1. Update status to 'confirmed' (Red) and SAVE TO FIREBASE
+                bookings[bookingIndex].status = 'confirmed';
+                await saveBookings(); // 🟢 SAVE to Firestore
+                
+                // 2. Open Admin to Customer WhatsApp link
+                const customerMessage = `🎉 *AREA 51 BOOKING CONFIRMATION* 🎉%0A%0A` +
+                                        `Hi ${booking.customerName}! Great News! Your *Pickleball* booking is officially *CONFIRMED*!%0A%0A` +
+                                        `Details:%0A` +
+                                        `📅 Date: ${formatDateToDisplay(booking.date)}%0A` +
+                                        `⏰ Time: ${booking.time}%0A` +
+                                        `📍 Venue: ${booking.venue.toUpperCase()}%0A` +
+                                        `💰 Amount: ₹${booking.price} (If paid, else payment due on arrival)%0A%0A` +
+                                        `*Find our location here:* ${AREA_51_LOCATION}%0A%0A` + 
+                                        `We look forward to seeing you. Let us know if you have any questions!%0A%0A` +
+                                        `Area 51 Sports Team`;
+                
+                const customerWhatsappNumber = `91${booking.customerWhatsapp}`; 
+                const whatsappURL = `https://wa.me/${customerWhatsappNumber}?text=${customerMessage}`;
+                window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+
+                // 3. Refresh UI
+                updateAdminDashboard();
+                generatePickleballSlots();
+                showMessage('Confirmed!', `Booking Confirmed for ${booking.customerName}. WhatsApp message opened to notify customer.`, 'green');
+            }
+        }
+
+        async function cancelBookingAdmin(slotId) {
+            const bookingIndex = bookings.findIndex(b => b.id === slotId);
+            
+            if (bookingIndex === -1) {
+                showMessage('Error', 'Booking not found!', 'red');
+                return;
+            }
+
+            const booking = bookings[bookingIndex];
+
+            if (window.confirm(`Are you sure you want to CANCEL the ${booking.status.toUpperCase()} booking for ${booking.customerName} on ${formatDateToDisplay(booking.date)} at ${booking.time}?`)) {
+                
+                // Remove booking from array and SAVE TO FIREBASE
                 bookings.splice(bookingIndex, 1);
-                saveBookings();
+                await saveBookings(); // 🟢 SAVE to Firestore
                 
-                // Optional: Notify customer about cancellation (Admin to Customer WhatsApp)
                 const cancellationMessage = `❌ *BOOKING CANCELLED* ❌%0A%0A` +
                                             `Hi ${booking.customerName}, your Pickleball booking for ${formatDateToDisplay(booking.date)} at ${booking.time} has been CANCELLED by the Admin.%0A%0A` +
                                             `_The slot is now available to book. Please contact us if you need assistance._%0A%0A` +
@@ -599,7 +690,6 @@
                 const whatsappURL = `https://wa.me/${customerWhatsappNumber}?text=${cancellationMessage}`;
                 window.open(whatsappURL, '_blank', 'noopener,noreferrer');
 
-                // Refresh UI
                 updateAdminDashboard();
                 generatePickleballSlots();
                 showMessage('Cancelled!', `Booking cancelled successfully! The slot is now available (Green). WhatsApp message opened to notify customer ${booking.customerName}.`, 'red');
@@ -612,7 +702,6 @@
             showMessage('Exited Admin', 'You are back in the customer booking view.', 'blue');
         }
 
-        // NEW FUNCTION: Check URL for admin query parameter
         function checkUrlForAdminAccess() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('admin') === 'true') {
@@ -620,32 +709,28 @@
             }
         }
         
-        // --- INITIALIZATION ---
+        // --- INITIALIZATION (Updated to use async function) ---
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const today = new Date().toISOString().split('T')[0];
-            
-            // Calculate max date (7 days from today)
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + 7);
             const maxDateString = maxDate.toISOString().split('T')[0];
             
-            // Set date constraints
             document.getElementById('pickleballDate').value = today;
             document.getElementById('pickleballDate').min = today;
             document.getElementById('pickleballDate').max = maxDateString;
             
-            // Attach hidden admin access listener
-            document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
+            // 🟢 STEP 1: Load data from Firebase (Wait for this to complete)
+            await loadBookings(); 
 
-            // Check if the admin URL parameter is present to trigger login
+            // STEP 2: Attach listeners and initialize UI based on loaded data
+            document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
             checkUrlForAdminAccess();
 
-            // Generate initial slots
             generatePickleballSlots();
-            updateCartDisplay(); // Ensure cart state is fresh
+            updateCartDisplay(); 
 
-            // Add event listeners for date and court type changes
             document.getElementById('pickleballDate').addEventListener('change', generatePickleballSlots);
             document.getElementById('courtType').addEventListener('change', generatePickleballSlots);
         });
