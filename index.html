@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -203,7 +203,6 @@
     
     <script>
         // 🟢🟢🟢 FIREBASE PROJECT CONFIG 🟢🟢🟢
-        // This configuration will now be used for saving and loading data.
         const firebaseConfig = {
             apiKey: "AIzaSyAUO0JKEK3FIDm3plBlGJ0KgTJdO1U_flg",
             authDomain: "area51pickleball-6aa2e.firebaseapp.com",
@@ -257,8 +256,8 @@
                     console.log("No initial data found in Firebase. Starting fresh.");
                 }
             } catch (error) {
-                // Display the error, which might be the reason slots aren't loading for the user
-                showMessage('Load Error', `Failed to load bookings: ${error.message}`, 'red');
+                // If there's an error loading, we still want generatePickleballSlots to run with an empty array
+                showMessage('Load Error', `Failed to load bookings. Check your Firebase rules: ${error.message}`, 'red');
                 console.error("Error reading document: ", error);
             }
         }
@@ -290,10 +289,6 @@
 
             const start12 = startHour % 12 || 12; 
             const end12 = endHour % 12 || 12;
-
-            // Determine period for the start of the slot
-            const periodStart = startHour < 12 || startHour === 24 ? 'AM' : 'PM';
-            const periodEnd = endHour < 12 || endHour === 24 ? 'AM' : 'PM';
 
             // Handle AM/PM transition at noon (11-12) or 12-1 PM
             if (startHour === 11) return `11 AM - 12 PM`;
@@ -346,31 +341,37 @@
 
             const isToday = selectedDateStr === todayStr;
 
+            // --- DEBUG LOGGING ---
+            console.log(`--- Slot Generation Debug ---`);
+            console.log(`Selected Date: ${selectedDateStr} (required format: YYYY-MM-DD)`);
+            console.log(`Is Selected Date Today: ${isToday}`);
+            if (isToday) {
+                console.log(`Current Time/Hour: ${now.toLocaleTimeString()} (${currentHour} in 24h format)`);
+                console.log(`Slots with hour <= ${currentHour} will be hidden.`);
+            }
+            // -----------------------
+
+            // We only show slots from 7 AM (hour 7) to 10 PM (hour 22, slot ends at 11 PM)
             for (let hour = 7; hour <= 22; hour++) {
                 
                 // 🛑 TIME BOUNDARY CHECK: If today, skip slots that are already passed or are the current hour.
                 if (isToday && hour <= currentHour) {
+                    console.log(`Skipping slot ${hour}:00 as it is past the current live hour (${currentHour}).`);
                     continue; 
                 }
 
-                // IMPORTANT: The slotId must use 24h format for consistent storage in Firebase
                 const timeSlot24h = `${hour.toString().padStart(2, '0')}:00`;
                 const slotId = `pickleball-${courtType}-${selectedDateStr}-${timeSlot24h}`;
                 
-                // Display text uses the new range format
                 const timeSlotDisplay = formatTimeRange(hour);
                 
-                // Check current status from the main bookings array
                 const currentBooking = bookings.find(b => b.id === slotId);
                 const isBookedConfirmed = currentBooking && currentBooking.status === 'confirmed';
-                
-                // Check if currently selected by this user (for visual cue before adding to cart)
                 const isSelectedByCurrentUser = selectedSlots.includes(slotId);
                 
                 const button = document.createElement('button');
-                button.textContent = timeSlotDisplay; // Use the formatted range text
+                button.textContent = timeSlotDisplay; 
                 
-                // Slot is blocked ONLY if confirmed (Red)
                 button.disabled = isBookedConfirmed; 
                 
                 let buttonClass = 'slot-available';
@@ -391,7 +392,8 @@
             }
             
             if (container.innerHTML === '') {
-                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500 font-medium">No available slots for the selected date or all past slots have been hidden.</div>';
+                // Display friendly message if no slots are available (either due to time or lack of data)
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500 font-medium">No available slots for the selected date/time. Try selecting a future date.</div>';
             }
         }
 
@@ -424,7 +426,6 @@
             const courtType = document.getElementById('courtType').value;
             
             selectedSlots.forEach(slotId => {
-                // The time slot is stored in 24h format in the slotId (e.g., '07:00')
                 const timeSlot24h = slotId.split('-').pop(); 
                 
                 const bookingDraft = {
@@ -432,7 +433,7 @@
                     sport: 'pickleball',
                     venue: courtType,
                     date: date,
-                    time: timeSlot24h, // Use 24h time here
+                    time: timeSlot24h, 
                     price: SLOT_PRICE,
                     user: currentUser.id,
                     customerName: null,
@@ -469,9 +470,8 @@
             }
             
             container.innerHTML = pendingBookingDraft.map((item, index) => {
-                // Get the starting hour from the 24h time string (e.g., '07:00' -> 7)
                 const startHour = parseInt(item.time.split(':')[0]);
-                const timeDisplay = formatTimeRange(startHour); // Format for display
+                const timeDisplay = formatTimeRange(startHour);
 
                 return `
                 <div class="flex justify-between items-center p-4 bg-purple-50 rounded-lg border border-purple-200">
@@ -540,7 +540,6 @@
             }));
 
             newConfirmedBookings.forEach(newBooking => {
-                // Ensure no duplicates by removing any existing slot with the same ID
                 bookings = bookings.filter(b => b.id !== newBooking.id); 
                 bookings.push(newBooking);
             });
@@ -694,6 +693,7 @@
         // --- INITIALIZATION ---
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // Set current date to today (YYYY-MM-DD format)
             const today = new Date().toISOString().split('T')[0];
             const maxDate = new Date();
             maxDate.setDate(maxDate.getDate() + 7);
@@ -709,6 +709,7 @@
             document.getElementById('adminTrigger').addEventListener('click', checkAdminAccess);
             checkUrlForAdminAccess();
 
+            // Generate slots after data is loaded
             generatePickleballSlots();
             updateCartDisplay(); 
 
@@ -718,3 +719,4 @@
     </script>
 </body>
 </html>
+
