@@ -540,8 +540,8 @@
         }
         
         function showAdminLogin() {
-            const password = prompt('🔐 Enter Admin Password:\n\n(Hint: area51admin)');
-            if (password === 'area51admin') {
+            const password = prompt('🔐 Enter Admin Password:');
+            if (password === 'area51@admin') {
                 document.getElementById('bookingSection').classList.add('hidden');
                 document.getElementById('adminSection').classList.remove('hidden');
                 updateAdminDashboard();
